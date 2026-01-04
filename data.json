@@ -1,0 +1,53 @@
+{   
+    "_comment": "This file contains comments, (_comment) Tread (parse) wisely.",
+    "header": {
+        "_comment":"## Private data. Internal description of this data. Please do not store configuration data here. Use this space for storing private author/file data only.", 
+        "filename":"example",
+        "filedesc":"Example Data for exec.py.", 
+        "author":"telemetry-disabled",
+        "version-compat":0,
+        "pkg_count":3,
+        "con_count":1
+    },
+    "vis_header": {
+        "_comment":"## User-accessible data. Use this space for data seen and edited by users.",
+        "label_title":"Example Load (Visualisation)",
+        "label_desc":"lorem ipsum blah blah blah \nblah blah blah",
+        "label_x":"x-axis",
+        "label_y":"y-axis",
+        "label_z":"z-axis",
+        "measure-unit":"mm"
+    },
+    "con": [
+        {
+            "name": "container1",
+            "desc": "container",
+            "con_type": "example-con",
+            "dims": [100,100,100]
+        }
+    ],
+    "pkg": [
+        {
+            "name": "package1 (1)",
+            "desc": "one indivdual package",
+            "pkg_type": "example-pkg",
+            "dims": [10,10,10],
+            "pos": [0,0,0]
+        },
+        {
+            "name": "package1 (2)",
+            "desc": "one indivdual package, dupe of the other package (pkg1-1)",
+            "pkg_type": "example-pkg",
+            "dims": [10,10,10],
+            "pos": [0,10,0]
+        },
+        {
+            "name": "pallet1 (1)",
+            "desc": "pallets are implemented as an upright cuboid group of packages.",
+            "pkg_type": "example-pallet",
+            "dims": [20,20,20],
+            "pos": [10,0,0]
+        }
+    ],
+    "meta": {}
+}
