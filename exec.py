@@ -48,9 +48,22 @@ def init_plt():
     ax = fig.add_subplot(111, projection='3d')
     ax.set_aspect('equal')
     ax.set_autoscale_on(False)
-    ax.set_xlabel(vis_header.get('label_x', 'X-axis')+f" ({MEASURE_UNIT})")
-    ax.set_ylabel(vis_header.get('label_y', 'Y-axis')+f" ({MEASURE_UNIT})")
-    ax.set_zlabel(vis_header.get('label_z', 'Z-axis')+f" ({MEASURE_UNIT})")
+
+    for axis, func_set_label, func_set_ticks, func_set_ticklabels in zip(['x', 'y', 'z'], [ax.set_xlabel, ax.set_ylabel, ax.set_zlabel], [ax.set_xticks, ax.set_yticks, ax.set_zticks], [ax.set_xticklabels, ax.set_yticklabels, ax.set_zticklabels]):
+        func_set_label(vis_header.get('label_'+axis, 'X-axis')+f" ({MEASURE_UNIT})")
+        
+        if vis_header.get('ticks_'+axis, False):
+            ticks = vis_header.get('ticks_'+axis)
+            labels = vis_header.get('ticklabels_'+axis, [])
+            if type(ticks) == list:
+                func_set_ticks(ticks)
+                if len(labels) == len(ticks): func_set_ticklabels(labels)
+            if type(ticks) == int and axis in ('x', 'y'):  # z-axis not supported. print warn?.
+                ax.locator_params(axis=axis, nbins=ticks)
+                if len(labels) == ticks: func_set_ticklabels(labels)
+    
+    if vis_header.get('minorticks', False): ax.minorticks_on()
+    if vis_header.get('showgrid', True): ax.grid()
     ax.set_title(vis_header.get('label_title', 'Container Visualization'))
     
     return fig, ax
@@ -90,7 +103,7 @@ def conv_dims_and_pos_to_cubevertices(dims, pos):
     ])
     return array
 
-def display_pkg(fig, ax, pkg):
+def display_pkg(fig, ax, pkg:dict):
     """
     Visualise a package as a cuboid in the 3D plot.
 
@@ -99,11 +112,12 @@ def display_pkg(fig, ax, pkg):
     """
     dims = tuple(pkg.get('dims', (1, 1, 1)))
     pos = tuple(pkg.get('pos', (0, 0, 0)))
+    colour = pkg.get('colour', {'fill':'purple', 'edge':'red', 'alpha':.6})
     vertices = conv_dims_and_pos_to_cubevertices(dims, pos)
     ax.add_collection3d(
         Poly3DCollection(
             [vertices[CUBE_FACES[face]] for face in range(len(CUBE_FACES))],
-            facecolors='cyan', linewidths=1, edgecolors='r', alpha=.6
+            facecolors=colour['fill'], linewidths=1, edgecolors=colour['edge'], alpha=colour['alpha']
         )
     )
 

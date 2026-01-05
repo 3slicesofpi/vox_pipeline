@@ -5,7 +5,7 @@
         "filename":"example",
         "filedesc":"Example Data for exec.py.", 
         "author":"telemetry-disabled",
-        "version-compat":0,
+        "version-compat":1,
         "pkg_count":3,
         "con_count":1
     },
@@ -13,9 +13,15 @@
         "_comment":"## User-accessible data. Use this space for data seen and edited by users.",
         "label_title":"Example Load (Visualisation)",
         "label_desc":"lorem ipsum blah blah blah \nblah blah blah",
-        "label_x":"x-axis",
-        "label_y":"y-axis",
-        "label_z":"z-axis",
+        "label_x":"Breadth",
+        "label_y":"Width",
+        "label_z":"Height",
+        "show_grid":true,
+
+        "ticks_y": 3,
+        "ticklabels_y":["left", "mid", "right"],
+        "ticks_z":[0, 10, 20, 50, 70, 100],
+        "ticklabels_z":["floor", "low", "med", "high", "vh", "roof"],
         "measure-unit":"mm"
     },
     "con": [
@@ -32,21 +38,36 @@
             "desc": "one indivdual package",
             "pkg_type": "example-pkg",
             "dims": [10,10,10],
-            "pos": [0,0,0]
+            "pos": [0,0,0],
+            "colour": {
+                "fill": "#00FF00",
+                "edge": "#000000",
+                "alpha": 0.4
+            }
         },
         {
             "name": "package1 (2)",
             "desc": "one indivdual package, dupe of the other package (pkg1-1)",
             "pkg_type": "example-pkg",
             "dims": [10,10,10],
-            "pos": [0,10,0]
+            "pos": [0,10,0],
+            "colour": {
+                "fill": "#00FF00",
+                "edge": "#000000",
+                "alpha": 0.4
+            }
         },
         {
             "name": "pallet1 (1)",
             "desc": "pallets are implemented as an upright cuboid group of packages.",
             "pkg_type": "example-pallet",
             "dims": [20,20,20],
-            "pos": [10,0,0]
+            "pos": [10,0,0],
+            "colour": {
+                "fill": "#00FF00",
+                "edge": "#000000",
+                "alpha": 0.2
+            }
         }
     ],
     "meta": {}
