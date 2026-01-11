@@ -2,9 +2,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-from typing import Any, Dict, Type, TypeVar 
+from typing import Any, Dict, Type, TypeVar
 from dataclasses import dataclass, replace
 import json
+
+with open('resources_default.json', 'r') as cfgfile:
+    temp_CFG = json.load(cfgfile)
 
 ALLOWED_CONTAINERS_COUNT = 1
 CUBE_FACES = np.array([  # define cube faces using NumPy array reshaping
@@ -16,62 +19,12 @@ CUBE_FACES = np.array([  # define cube faces using NumPy array reshaping
     [0, 3, 7, 4]
 ])
 
-# read the json file
-with open('data.json', 'r') as f:
-    data:dict[dict[str:str]|list[dict[str:str]]] = json.load(f) 
-    header:dict[str:str] = data['header']  # private data
-    vis_header:dict[str:str] = data['vis_header']  # user-editable data
-    con:list[dict[str:str]] = data['con']  # container info
-    pkg:list[dict[str:str]] = data['pkg']  # package info
-    meta:dict[str:str] = data['meta']  # related metadata
-    MEASURE_UNIT = vis_header.get('measure-unit', 'mm')
-
-def verify_data():
-    """
-    Verify that the data meets the required conditions.
-    """
-    if len(con) != header.get('con_count', 0):
-        raise ValueError("Container count error. (does not match header)")
-    if len(pkg) != header.get('pkg_count', 0):
-        raise ValueError("Package count error. (does not match header)")
-    if len(con) > ALLOWED_CONTAINERS_COUNT or header.get('con_count', 0) > ALLOWED_CONTAINERS_COUNT:
-        raise ValueError(f"Number of containers must be {ALLOWED_CONTAINERS_COUNT}.")
-
-    # Additional verification logic can be added here
-
-
-
-
-
 def generateNewName_incrementSuffix(name:str, nameformat="{name}-child{value}"):
     yield nameformat.format(name=name, value="")
     value = 1
     while True:
         yield nameformat.format(name=name,value=value)
         value += 1
-
-
-def conv_dims_and_pos_to_3dpos(dim:list[float|int], pos:list[float|int]) -> list[list[float]]:
-    """
-    Convert dimensions and position to a 3d positions in visualisation.
-
-    dim: tuple of (x_dim, y_dim, z_dim)
-    pos: tuple of (x_pos, y_pos, z_pos)
-    return: 3d cube vertex array/8 sets of 
-    """
-    x_dim, y_dim, z_dim = dim
-    x_pos, y_pos, z_pos = pos
-    array = np.array([
-        [x_pos, y_pos, z_pos],                          # origin
-        [x_pos + x_dim, y_pos, z_pos],                  
-        [x_pos + x_dim, y_pos + y_dim, z_pos],
-        [x_pos, y_pos + y_dim, z_pos],
-        [x_pos, y_pos, z_pos + z_dim],
-        [x_pos + x_dim, y_pos, z_pos + z_dim],
-        [x_pos + x_dim, y_pos + y_dim, z_pos + z_dim],
-        [x_pos, y_pos + y_dim, z_pos + z_dim]
-    ])
-    return array
 
 # the important classes
 class ContainerHandler():
@@ -80,6 +33,7 @@ class ContainerHandler():
         self.name = name
         self.cons:list[Container] = []
         self.pkgs:dict[Package] = {}
+        self.colours:dict[ColourResource] = {}
         self.selected_con_idx = 0
 
         # Attached Helper Scripts
@@ -107,14 +61,27 @@ class ContainerHandler():
         """
         fig, ax = cls.init_plt(data['vis_header'])
         src = cls(data['vis_header']['label_title'])
+        src.colours = ColourResource._fromfile(data)
+        src._data_resolve_refs_resources(data)
         src.pkgs = Package._fromfile(data)
+        src._data_resolve_refs_pkgs(data)
         src.cons = Container._fromfile(data)
-        ### call _resolve_ref_at_init to fill _ref for PkgPos Instances.
-        for con in src.cons:
-            for pp in con.pkgs:
-                pp._resolve_ref_at_init(src.pkgs)
-        ###
         return src, fig, ax
+
+    def _data_resolve_refs_pkgs(self, data):
+        """ Replace string pkg refs with actual object refs. """
+        for con in data['con']:
+            for pp in con['pkg_pos']:
+                pp['name'] = self.pkgs[pp['name']]
+
+    def _data_resolve_refs_resources(self, data):
+        """ Replace string resource refs with actual object refs. """
+        for pkg_name, pkg_data in data['pkg'].items():
+            if 'colour' in pkg_data:
+                colour_name = pkg_data['colour']
+                pkg_data['colour'] = self.colours.get(colour_name, DEFAULT_RESOURCE['colour']) 
+            else:
+                pkg_data['colour'] = DEFAULT_RESOURCE['colour']
 
     def _check_name_valid(self, name):
         if not name: return False
@@ -128,7 +95,6 @@ class ContainerHandler():
     @property
     def numof_pkgs(self):
         return len(self.cons)
-    
     
     def _plt_display(self, fig, ax, selected_con_idx=0):
         if len(self.cons) < selected_con_idx:
@@ -167,7 +133,7 @@ class ContainerHandler():
         ax.set_autoscale_on(False)
 
         for axis, func_set_label, func_set_ticks, func_set_ticklabels in zip(['x', 'y', 'z'], [ax.set_xlabel, ax.set_ylabel, ax.set_zlabel], [ax.set_xticks, ax.set_yticks, ax.set_zticks], [ax.set_xticklabels, ax.set_yticklabels, ax.set_zticklabels]):
-            func_set_label(vis_header.get('label_'+axis, 'X-axis')+f" ({MEASURE_UNIT})")
+            func_set_label(vis_header.get('label_'+axis, 'X-axis'))
             
             if vis_header.get('ticks_'+axis, False):
                 ticks = vis_header.get('ticks_'+axis)
@@ -237,15 +203,19 @@ class PackageResource():
     """Holds data resources for pkg instances."""
     resource_type = "parent"
     name: str
-    CFG: dict = {}
+    CFG = temp_CFG.get('parent')
     def __init__(self, name):
         self.name = name  # name of the data resource
     
     @classmethod
-    def _fromfile(cls, data:dict):
-        data = cls._apply_default(data)
-        return cls(**data)
-    
+    def _fromfile(cls, data:dict[dict]) -> dict:
+        objs = {k: cls(name=k, **cls._apply_default(v)) for k, v in data.get(cls.resource_type, {}).items()}
+        return objs
+
+    @classmethod
+    def _fromdefault(cls, name):
+        return cls(name=name, **cls._apply_default({}))
+
     def _tofile(self) -> dict:
         raise NotImplementedError()
     
@@ -263,10 +233,10 @@ class PackageResource():
         return data
     
 class ColourResource(PackageResource):
-    resource_type = "colours"
+    resource_type = "colour"
     name: str
     fillcolour: str; edgecolour: str; alpha: float; linewidth: float
-    CFG = {"fillcolour": "magenta", "edgecolour": "red", "alpha": 0.6, "linewidth": 1.} # TODO get from .cfg
+    CFG = temp_CFG.get('colour')
     def __init__(self, name, fillcolour: str, edgecolour: str, alpha: float, linewidth: float):
         super().__init__(name)
         self.fillcolour = fillcolour; self.edgecolour = edgecolour
@@ -274,18 +244,18 @@ class ColourResource(PackageResource):
 
 
 DEFAULT_RESOURCE = {
-    'colour': ColourResource._fromfile({"name":"default"})}
+    'colour': ColourResource._fromdefault(name="default")}
 
 class Package():
     """One individual package."""
-    def __init__(self, name, colour=DEFAULT_RESOURCE['colour']):
+    def __init__(self, name:str, colour:ColourResource):
         self.name = name
         self.colour = colour
 
     @classmethod
     def _fromfile(cls, data:dict):
         pkgs = data['pkg']  # get templates from here
-        obj = {k: cls(v['name']) for k, v in pkgs.items()}
+        obj = {k: cls(**v) for k, v in pkgs.items()}
         return obj
 
     def __getattr__(self, p):
@@ -306,12 +276,31 @@ class Package():
 class PackagePosition():
     _C_FACES = CUBE_FACES
     def __init__(self, pos, dim, ref:Package|str):
-        self.pos = pos
-        self.dim = dim
+        self.pos:list[float|int] = pos
+        self.dim:list[float|int] = dim
         self._ref = ref
     @property
     def _3dpos(self):
-        return conv_dims_and_pos_to_3dpos(self.dim, self.pos)
+        """
+        Convert dimensions and position to a 3d positions in visualisation.
+
+        dim: tuple of (x_dim, y_dim, z_dim)
+        pos: tuple of (x_pos, y_pos, z_pos)
+        return: 3d cube vertex array/8 sets of 
+        """
+        x_dim, y_dim, z_dim = self.dim
+        x_pos, y_pos, z_pos = self.pos
+        array = np.array([
+            [x_pos, y_pos, z_pos],                          # origin
+            [x_pos + x_dim, y_pos, z_pos],                  
+            [x_pos + x_dim, y_pos + y_dim, z_pos],
+            [x_pos, y_pos + y_dim, z_pos],
+            [x_pos, y_pos, z_pos + z_dim],
+            [x_pos + x_dim, y_pos, z_pos + z_dim],
+            [x_pos + x_dim, y_pos + y_dim, z_pos + z_dim],
+            [x_pos, y_pos + y_dim, z_pos + z_dim]
+        ])
+        return array
     @property
     def pos_midpoint(self):
         return [self.pos[0] + self.dim[0]/2,
@@ -324,10 +313,6 @@ class PackagePosition():
     def __getattr__(self, p):
         return getattr(self._ref, p)
 
-    def _resolve_ref_at_init(self, pkgs:dict[str:Package]):  # yuck! not pythonic
-        # i dug myself in a corner here, ConHandler not inited so: ref to Pkg needs direct connection. 
-        if self._ref in pkgs:
-            self._ref = pkgs[self._ref]
     def _plt_display(self, fig, ax):
         ax.add_collection3d(Poly3DCollection([self._3dpos[face] for face in self._C_FACES], facecolors=self.fillcolour, linewidths=self.linewidth, edgecolors=self.edgecolour, alpha=self.alpha))
 
@@ -336,8 +321,7 @@ class PackagePosition():
     def _print_reveal_verbose(self):
         print("│ │ ├─"+self.name, self.pos, f"{self.dim[0]}x{self.dim[1]}x{self.dim[2]}")
 
-verify_data()
 src, fig, ax = ContainerHandler.start_fromfile("data.json")
-src._print_reveal_verbose()
+src._print_reveal()
 src.show(fig, ax)
 plt.show()

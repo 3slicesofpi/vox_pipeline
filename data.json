@@ -38,9 +38,17 @@
         }
     ],
     "pkg": {
-        "pkg 1": {"name": "pkg 1"},
-        "pkg 2": {"name": "pkg 2"},
+        "pkg 1": {"name": "pkg 1", "colour": "example-pkg"},
+        "pkg 2": {"name": "pkg 2", "colour": "default"},
         "pal 1": {"name": "pal 1"}
+    },
+    "colour" : {
+        "example-pkg": {
+            "fillcolour": "#ff0000",
+            "edgecolour": "#000000",
+            "alpha": 1.0,
+            "linewidth": 0.4
+        }
     },
     "meta": {}
 }

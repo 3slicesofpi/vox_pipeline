@@ -1,0 +1,19 @@
+{
+    "parent": {
+    },
+    "colour": {
+        "fillcolour": "#00ff00",
+        "edgecolour": "#000000",
+        "alpha": 1.0,
+        "linewidth": 0.4
+    },
+    "content": {
+        "weight": 1,
+        "fragile": false
+    },
+    "author": {
+        "authorname": "",
+        "authoremail": "",
+        "companyname": ""
+    }
+}
