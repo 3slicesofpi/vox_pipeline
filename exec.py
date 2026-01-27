@@ -1,6 +1,11 @@
+
+
+import re
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.transforms as mtransforms
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from mpl_toolkits.mplot3d import proj3d
 
 from typing import Any, Dict, Type, TypeVar
 from dataclasses import dataclass, replace
@@ -8,6 +13,10 @@ import json
 
 with open('resources_default.json', 'r') as cfgfile:
     temp_CFG = json.load(cfgfile)
+with open('manifest.json', 'r') as f:
+    manifest = json.load(f) 
+with open('config.json', 'r') as f:
+    config = json.load(f)
 
 ALLOWED_CONTAINERS_COUNT = 1
 CUBE_FACES = np.array([  # define cube faces using NumPy array reshaping
@@ -19,108 +28,7 @@ CUBE_FACES = np.array([  # define cube faces using NumPy array reshaping
     [0, 3, 7, 4]
 ])
 
-def generateNewName_incrementSuffix(name:str, nameformat="{name}-child{value}"):
-    yield nameformat.format(name=name, value="")
-    value = 1
-    while True:
-        yield nameformat.format(name=name,value=value)
-        value += 1
-
-# the important classes
-class ContainerHandler():
-    """Contains and Handles Container Instances."""
-    def __init__(self, name):
-        self.name = name
-        self.cons:list[Container] = []
-        self.pkgs:dict[Package] = {}
-        self.colours:dict[ColourResource] = {}
-        self.selected_con_idx = 0
-
-        # Attached Helper Scripts
-        self.con_default_name_generator = generateNewName_incrementSuffix(self.name, nameformat="{name}-container{value}")
-    def show(self, fig, ax):
-        self._plt_display(fig, ax, self.selected_con_idx)
-    @classmethod
-    def start_fromfile(cls, filepath):
-        data = cls._openfile_json(filepath=filepath)
-        src, fig, ax = cls._fromfile(data)
-        return src, fig, ax
-    @staticmethod
-    def _openfile_json(filepath) -> dict[dict[str:str]|list[dict[str:str]]]:
-        """Get data from a json file"""
-        with open(filepath, 'r') as f:
-            data = json.load(f) 
-        # add checks here
-        return data
-    
-    @classmethod
-    def _fromfile(cls, data) -> tuple[Any]:
-        """
-        Data will be used to recursively produce multiple layers of classes. 
-        Parents will use same data to generate new classes using this common func.
-        """
-        fig, ax = cls.init_plt(data['vis_header'])
-        src = cls(data['vis_header']['label_title'])
-        src.colours = ColourResource._fromfile(data)
-        src._data_resolve_refs_resources(data)
-        src.pkgs = Package._fromfile(data)
-        src._data_resolve_refs_pkgs(data)
-        src.cons = Container._fromfile(data)
-        return src, fig, ax
-
-    def _data_resolve_refs_pkgs(self, data):
-        """ Replace string pkg refs with actual object refs. """
-        for con in data['con']:
-            for pp in con['pkg_pos']:
-                pp['name'] = self.pkgs[pp['name']]
-
-    def _data_resolve_refs_resources(self, data):
-        """ Replace string resource refs with actual object refs. """
-        for pkg_name, pkg_data in data['pkg'].items():
-            if 'colour' in pkg_data:
-                colour_name = pkg_data['colour']
-                pkg_data['colour'] = self.colours.get(colour_name, DEFAULT_RESOURCE['colour']) 
-            else:
-                pkg_data['colour'] = DEFAULT_RESOURCE['colour']
-
-    def _check_name_valid(self, name):
-        if not name: return False
-        for con in self.cons:
-            if con.name == name: return False
-        return True
-    
-    @property
-    def numof_cons(self):
-        return len(self.cons)    
-    @property
-    def numof_pkgs(self):
-        return len(self.cons)
-    
-    def _plt_display(self, fig, ax, selected_con_idx=0):
-        if len(self.cons) < selected_con_idx:
-            raise IndexError('con index out of range'+selected_con_idx)
-        print("Displaying ContainerHandler:", self.name)
-        ax.set_title(self.name)
-        self.cons[selected_con_idx]._plt_display(fig, ax)
-        return fig, ax
-    def _print_reveal(self):
-        """Crude method to display object locations/hierarchy."""
-        print("├─SRC    :", self.name)
-        for con in self.cons: con._print_reveal()
-        for pkg in self.pkgs.values(): pkg._print_reveal()
-    def _print_reveal_verbose(self):
-        """Cruder method to display object locations/hierarchy"""
-        params_list = ['numof_cons', 'numof_pkgs']
-        print("├─SRC    :", self.name)
-        print("│ └───────┐")
-        for p in params_list: print("│         │", p+":", getattr(self,p))
-        print("│ ┌───────┘")
-        for con in self.cons: con._print_reveal_verbose()
-        for pkg in self.pkgs.values(): pkg._print_reveal_verbose()
-        print("│")
-    
-    @staticmethod
-    def init_plt(vis_header:dict):
+def init_plt(visual:dict):
         """
         init routine for the plt module.
         Set up labels, vis environment, window, etc
@@ -131,165 +39,207 @@ class ContainerHandler():
         ax = fig.add_subplot(111, projection='3d')
         ax.set_aspect('equal')
         ax.set_autoscale_on(False)
-
         for axis, func_set_label, func_set_ticks, func_set_ticklabels in zip(['x', 'y', 'z'], [ax.set_xlabel, ax.set_ylabel, ax.set_zlabel], [ax.set_xticks, ax.set_yticks, ax.set_zticks], [ax.set_xticklabels, ax.set_yticklabels, ax.set_zticklabels]):
-            func_set_label(vis_header.get('label_'+axis, 'X-axis'))
+            func_set_label(visual.get('label_'+axis, 'X-axis'))
             
-            if vis_header.get('ticks_'+axis, False):
-                ticks = vis_header.get('ticks_'+axis)
-                labels = vis_header.get('ticklabels_'+axis, [])
-                if type(ticks) == list:
-                    func_set_ticks(ticks)
-                    if len(labels) == len(ticks): func_set_ticklabels(labels)
-                if type(ticks) == int and axis in ('x', 'y'):  # z-axis not supported. print warn?.
-                    ax.locator_params(axis=axis, nbins=ticks)
-                    if len(labels) == ticks: func_set_ticklabels(labels)
+            # if visual.get('ticks_'+axis, False):
+            #     ticks = visual.get('ticks_'+axis)
+            #     labels = visual.get('ticklabels_'+axis, [])
+            #     if type(ticks) == list:
+            #         func_set_ticks(ticks)
+            #         if len(labels) == len(ticks): func_set_ticklabels(labels)
+            #     if type(ticks) == int and axis in ('x', 'y'):  # z-axis not supported. print warn?.
+            #         ax.locator_params(axis=axis, nbins=ticks)
+            #         if len(labels) == ticks: func_set_ticklabels(labels)
         
-        if vis_header.get('minorticks', False): ax.minorticks_on()
-        if vis_header.get('showgrid', True): ax.grid()
-        ax.set_title(vis_header.get('label_title', 'Container Visualization'))
+        if visual.get('minorticks', False): ax.minorticks_on()
+        if visual.get('showgrid', True): ax.grid()
+        ax.set_title(visual.get('label_title', 'Container Visualization'))
         
         return fig, ax
 
+class Unique_ID_Enforcer():
+    def __init__(self):
+        self.Unique_IDs:set = set()
+        match config["header"].get("enforce_no_uid_behaviour"):
+            case "replace":
+                self.enforce = self._enforce_behaviour_replace
+            case _:
+                pass
+        self._makeObj = self._makeGen()
+    def enforce(self):
+        raise ValueError("Invalid or Missing Unique ID.")
+    def _enforce_behaviour_replace(self):
+        return next(self._makeObj)
+    def test(self, key, dict) -> int:
+        if (key in dict) and (dict[key] not in self.Unique_IDs):
+            self.Unique_IDs.add(dict[key])
+            return dict[key]
+        else:
+            self.enforce()
+    def _makeGen(self):
+        value = 100
+        while True:
+            if value not in self.Unique_IDs:
+                self.Unique_IDs.add(value)
+                yield value
+            value += 1
+uid_e = Unique_ID_Enforcer()
+
+class ResourceHandler():
+    def __init__(self):
+        pass
+    @classmethod
+    def _fromfile():
+        pass
+
+
 class Container():
-    """One individual Container."""
-    def __init__(self, name, dim:list[float]):
-        self.name = name
-        self.dim = dim
-        self.pkgs = []  # actually pkg_pos but pp instances SHOULD ref immediately to pkg instances.
-        # Attached Helper Scripts
-        self.pkg_default_name_generator = generateNewName_incrementSuffix(self.name, nameformat="{name}-package{value}")
-    def _check_name_valid(self, name):
-        if not name: return False
-        for pkg in self.pkgs:
-            if pkg.name == name: return False
-        return True
-    @classmethod
-    def _fromfile(cls, data:dict):
-        cons = data["con"]
-        obj_list = []
-        for con in cons:
-            obj = cls(con['name'], con['dim']) 
-            obj.pkgs = [PackagePosition(ref=pp['name'], pos=pp['pos'], dim=pp['dim']) for pp in con['pkg_pos']]
-            obj_list.append(obj)
-        return obj_list
+    def __init__(self, data:dict):  # data is expected to be dict holding all Container data.
+        self.Container_ID = uid_e.test("Container_ID",data)
+
+        dim:dict = data.get("Dimensions", {})
+        self.dimLength = dim.get("Length", 0)
+        self.dimWidth = dim.get("Width", 0)
+        self.dimHeight = dim.get("Height", 0)
+
+        self.Packages = [Package(pkg) for pkg in data.get("Packages", [])]
+    
     @property
-    def numof_pkgs(self):
-        return len(self.pkgs)
-    def _print_reveal(self):
-        """Crude method to display object locations."""
-        print("│ ├─CON  :", self.name)
-        for pkg in self.pkgs: pkg._print_reveal()
-    def _print_reveal_verbose(self):
-        """ Even Cruder method to display object location and its hierarchy"""
-        params_list = ('dim', "numof_pkgs")
-        print("│ ├─CON  :", self.name)
-        print("│ │ └─────┐")
-        for p in params_list: print("│ │       │", p+":", getattr(self,p))
-        print("│ │ ┌─────┘")
-        for pkg in self.pkgs: pkg._print_reveal_verbose()
-        print("│ │")
-    def _plt_display(self, fig, ax):
-        """Add container data into fig, ax."""
-        print("Displaying Container:", self.name)
-        ax.set_xlim([0, self.dim[0]])
-        ax.set_ylim([0, self.dim[1]])
-        ax.set_zlim([0, self.dim[2]])
-        for pkg in self.pkgs:
-            pkg._plt_display(fig, ax)
+    def dim(self):
+        return np.array(self.dimLength, self.dimWidth, self.dimHeight)
 
+    def _render(self, fig, ax):
+        ax.set_xlim(0, self.dimLength)   # X-axis range
+        ax.set_ylim(0, self.dimWidth)   # Y-axis range
+        ax.set_zlim(0, self.dimHeight)   # Z-axis range
+        for pkg in self.Packages:
+            pkg._render(fig, ax)
 
-class PackageResource():
-    """Holds data resources for pkg instances."""
-    resource_type = "parent"
-    name: str
-    CFG = temp_CFG.get('parent')
-    def __init__(self, name):
-        self.name = name  # name of the data resource
+class CursorHelper():
+    def __init__(self):
+        self.cursor_state = "highlight" # possible states: highlight, pick
+        self.cursor_zpos_real = 0.0  # approximate z-pos of cursor in 3D space, changes when scroll, 
+        self.hovered_pkg:set = {}  # a list of currently hovered packages
+        self.picked_pkg = None
+
+        self._fixed_view = [None, None, None]
+    def cursor_move(self, event):
+        if not event.inaxes:
+            return
+        s = event.inaxes.format_coord(event.xdata, event.ydata)
+        s = re.findall(r"[-+]?\d*\.?\d+(?:e[-+]?\d+)?", s)
+        if float(s[2]) == 0.0: 
+            cursorpos = [float(s[0]), float(s[1])] 
+        else: return 
+        self.cursor_check(cursorpos)
+        
+    def cursor_click(self, event):
+        self.cursor_state = "pick"
+        if self.picked_pkg:
+            # self._fixed_view[:] = ax.elev, ax.azim, ax.dist
+            self.picked_pkg._update_edgecolor("pick")
     
-    @classmethod
-    def _fromfile(cls, data:dict[dict]) -> dict:
-        objs = {k: cls(name=k, **cls._apply_default(v)) for k, v in data.get(cls.resource_type, {}).items()}
-        return objs
+    def cursor_click_release(self, event):
+        self.cursor_state = "highlight"
+        if self.picked_pkg:
+            self.picked_pkg._update_edgecolor("highlight")
 
-    @classmethod
-    def _fromdefault(cls, name):
-        return cls(name=name, **cls._apply_default({}))
+    def _highlight_check(self, cursor_pos:list[float]):
+        """ Check if the cursor is hovering over any package in 3D space. """
+        hovered_pkg_new:set = set()
+        for pkg in container.Packages:
+            if pkg._cursor_check(cursor_pos):
+                hovered_pkg_new.add(pkg)
+                if pkg not in self.hovered_pkg:
+                    pkg._update_edgecolor("hover")
+                    if pkg.posz <= self.cursor_zpos_real <= pkg.posz + pkg.dimHeight and not self.picked_pkg:
+                        self.cursor_zpos_real = pkg.posz 
+                        self.picked_pkg = pkg
+                        pkg._update_edgecolor("highlight")
+            else:  # restore
+                if pkg in self.hovered_pkg:
+                    pkg._update_edgecolor("default")
+                if pkg == self.picked_pkg:
+                    self.picked_pkg = None
+        self.hovered_pkg = hovered_pkg_new
 
-    def _tofile(self) -> dict:
-        raise NotImplementedError()
-    
-    def _edit(self, **changes):
-        """Resources cannot be edited. Changes must take place by creating a new resource instance."""
-        if "name" in changes and changes["name"]==self.name: changes["name"] = "copy: "+changes["name"]  #ensure a new name every time. TODO replace this ith something better
-        if changes:
-            return replace(self, **changes)
-    
-    @classmethod
-    def _apply_default(cls, data:dict) -> dict:
-        for name, default in cls.CFG.items():
-            if name not in data or data[name] in (None, "", [], {}):
-                data[name] = default
-        return data
-    
-class ColourResource(PackageResource):
-    resource_type = "colour"
-    name: str
-    fillcolour: str; edgecolour: str; alpha: float; linewidth: float
-    CFG = temp_CFG.get('colour')
-    def __init__(self, name, fillcolour: str, edgecolour: str, alpha: float, linewidth: float):
-        super().__init__(name)
-        self.fillcolour = fillcolour; self.edgecolour = edgecolour
-        self.alpha = alpha; self.linewidth = linewidth
+    def _pick_move(self, cursor_pos:list[float]):
+        if self.picked_pkg:
+            if self._fixed_view[0] is not None:
+                # ax.view_init(elev=self._fixed_view[0], azim=self._fixed_view[1])
+                # ax.dist = self._fixed_view[2]
+                pass
+            self.picked_pkg.posx = cursor_pos[0]
+            self.picked_pkg.posy = cursor_pos[1]
+            self.picked_pkg.polygon.set_verts(
+                [self.picked_pkg.pos3d[face] for face in self.picked_pkg._C_FACES]
+            )
+                
+    @property
+    def cursor_zpos(self):
+        if self.picked_pkg:
+            return self.picked_pkg.posz
+        return self.cursor_zpos_real
+    def cursor_check(self, cursor_pos:list[float]):
+        match self.cursor_state:
+            case "highlight":
+                self._highlight_check(cursor_pos)
+            case "pick":
+                self._pick_move(cursor_pos)
+            case _: raise ValueError("Invalid cursor state.")
 
-
-DEFAULT_RESOURCE = {
-    'colour': ColourResource._fromdefault(name="default")}
 
 class Package():
-    """One individual package."""
-    def __init__(self, name:str, colour:ColourResource):
-        self.name = name
-        self.colour = colour
-
-    @classmethod
-    def _fromfile(cls, data:dict):
-        pkgs = data['pkg']  # get templates from here
-        obj = {k: cls(**v) for k, v in pkgs.items()}
-        return obj
-
-    def __getattr__(self, p):
-        return getattr(self.colour, p)
-
-    def _print_reveal(self):
-        """Crude method to display obj locations."""
-        print("│ ├─PKG:", self.name)
-    def _print_reveal_verbose(self):
-        """ Even cruder method to display object location """
-        self._print_reveal()
-        # params_list = ('dim', "pos", "pos_midpoint")
-        # print("│ │ ├─PKG:", self.name)
-        # print("│ │ │ └───┐")
-        # for p in params_list: print("│ │ │     │ ", p+":", getattr(self,p))
-        # TODO update
-
-class PackagePosition():
     _C_FACES = CUBE_FACES
-    def __init__(self, pos, dim, ref:Package|str):
-        self.pos:list[float|int] = pos
-        self.dim:list[float|int] = dim
-        self._ref = ref
-    @property
-    def _3dpos(self):
-        """
-        Convert dimensions and position to a 3d positions in visualisation.
+    d_weight = 0.0  # default weight
+    d_FaceColors = ['cyan'] * 6  # default face colors
+    d_LineWidth = 1  # default line width
+    d_EdgeColors = 'r'  # default edge colors
+    h_EdgeColors = 'y'  # edge color on hover
+    hi_EdgeColors = 'g'  # edge color on highlight
+    p_EdgeColors = 'k'  # edge color on pick
+    d_Alpha = 0.25  # default alpha
+    def __init__(self, data:dict):
+        self.Package_ID = uid_e.test("Package_ID",data)
 
-        dim: tuple of (x_dim, y_dim, z_dim)
-        pos: tuple of (x_pos, y_pos, z_pos)
-        return: 3d cube vertex array/8 sets of 
-        """
-        x_dim, y_dim, z_dim = self.dim
-        x_pos, y_pos, z_pos = self.pos
+        dim:dict = data.get("Dimensions", {})
+        self.dimLength = dim.get("Length", 0)
+        self.dimWidth = dim.get("Width", 0)
+        self.dimHeight = dim.get("Height", 0)
+
+        self.weight = data.get("Weight", self.d_weight)
+
+        pos:dict = data.get("Position", {})
+        self.posx = pos.get("x", 0)
+        self.posy = pos.get("y", 0)
+        self.posz = pos.get("z", 0)    
+
+        self.FaceColors = self.d_FaceColors
+        self.LineWidth = self.d_LineWidth
+        self.EdgeColors = self.d_EdgeColors
+        self.Alpha = self.d_Alpha
+
+        self._init_polygon()
+    
+    @property
+    def pos(self):
+        return np.array(self.posx, self.posy, self.posz)
+    @property
+    def dim(self):
+        return np.array(self.dimLength, self.dimWidth, self.dimHeight)
+    @property
+    def volume(self):
+        return self.dimLength * self.dimWidth * self.dimHeight
+    @property
+    def pos_midpoint(self):
+        return [self.posx + self.dimLength/2,
+                self.posy + self.dimWidth/2,
+                self.posz + self.dimHeight/2]
+    @property
+    def pos3d(self):
+        x_dim, y_dim, z_dim = self.dimLength, self.dimWidth, self.dimHeight
+        x_pos, y_pos, z_pos = self.posx, self.posy, self.posz
         array = np.array([
             [x_pos, y_pos, z_pos],                          # origin
             [x_pos + x_dim, y_pos, z_pos],                  
@@ -301,27 +251,80 @@ class PackagePosition():
             [x_pos, y_pos + y_dim, z_pos + z_dim]
         ])
         return array
-    @property
-    def pos_midpoint(self):
-        return [self.pos[0] + self.dim[0]/2,
-                self.pos[1] + self.dim[1]/2,
-                self.pos[2] + self.dim[2]/2]
-    @property
-    def pkg(self):
-        return self._ref
     
-    def __getattr__(self, p):
-        return getattr(self._ref, p)
+    def _cursor_check(self, cursor_pos:list[float]) -> bool:
+        """ Check if the cursor is over the package in 3D space. """
+        if self.posx <= cursor_pos[0] <= self.posx + self.dimLength:
+            if self.posy <= cursor_pos[1] <= self.posy + self.dimWidth:
+                # ignore posz, (current implementation limitation)
+                return True
+        else: return False
 
-    def _plt_display(self, fig, ax):
-        ax.add_collection3d(Poly3DCollection([self._3dpos[face] for face in self._C_FACES], facecolors=self.fillcolour, linewidths=self.linewidth, edgecolors=self.edgecolour, alpha=self.alpha))
+    def _update_edgecolor(self, state:str):
+        match state:
+            case "hover":
+                self.polygon.set_edgecolor(self.h_EdgeColors)
+            case "highlight":
+                self.polygon.set_edgecolor(self.hi_EdgeColors)
+            case "pick":
+                self.polygon.set_edgecolor(self.p_EdgeColors)
+            case _:
+                self.polygon.set_edgecolor(self.EdgeColors)
 
-    def _print_reveal(self):
-        pass
-    def _print_reveal_verbose(self):
-        print("│ │ ├─"+self.name, self.pos, f"{self.dim[0]}x{self.dim[1]}x{self.dim[2]}")
+    def _init_polygon(self):
+        self.polygon = Poly3DCollection(
+            [self.pos3d[face] for face in self._C_FACES], 
+            facecolors=self.FaceColors, 
+            linewidths=self.LineWidth, 
+            edgecolors=self.EdgeColors, 
+            alpha=self.Alpha)
 
-src, fig, ax = ContainerHandler.start_fromfile("data.json")
-src._print_reveal()
-src.show(fig, ax)
+    def _render(self, fig, ax):
+        ax.add_collection3d(self.polygon)
+        self._update_edgecolor("default")
+
+cur = CursorHelper()
+def cursor_move(event):
+    if not event.inaxes:
+        return
+    s = event.inaxes.format_coord(event.xdata, event.ydata)
+    s = re.findall(r"[-+]?\d*\.?\d+(?:e[-+]?\d+)?", s)
+    if float(s[2]) == 0.0: 
+        cursorpos = [float(s[0]), float(s[1])] 
+    else: return 
+    cur.cursor_check(cursorpos)
+    fig.canvas.draw_idle()
+
+def mpl_move(event):
+    cur.cursor_move(event)
+    fig.canvas.draw_idle()
+
+def mpl_click(event):
+    cur.cursor_click(event)
+    fig.canvas.draw_idle()
+
+def mpl_click_release(event):
+    cur.cursor_click_release(event)
+    fig.canvas.draw_idle()
+
+def mpl_scroll(event):
+    step = config['visual'].get('scroll_step', 0.5)
+    if event.button == 'up' and cur.cursor_zpos_real + step <= container.dimHeight:
+        cur.cursor_zpos_real += step
+    elif event.button == 'down' and cur.cursor_zpos_real - step >= 0:
+        cur.cursor_zpos_real -= step
+    print(cur.cursor_zpos_real)
+    cur.cursor_move(event)
+    fig.canvas.draw_idle()
+
+fig, ax = init_plt(config['visual'])
+fig.canvas.mpl_connect('motion_notify_event', mpl_move)
+toolbar = fig.canvas.manager.toolbar
+toolbar.pan(False)
+toolbar.zoom(False)
+fig.canvas.mpl_connect('button_press_event', mpl_click)
+fig.canvas.mpl_connect('button_release_event', mpl_click_release)
+fig.canvas.mpl_connect('scroll_event', mpl_scroll)
+container = Container(manifest)
+container._render(fig, ax)
 plt.show()

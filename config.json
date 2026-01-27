@@ -1,0 +1,13 @@
+{
+    "header": {
+        "enforce_no_uid_behaviour": "replace"
+    },
+    "visual": {
+        "label_title":"Example Load (Visualisation)",
+        "label_desc":"lorem ipsum blah blah blah \nblah blah blah",
+        "label_x":"Breadth",
+        "label_y":"Width",
+        "label_z":"Height",
+        "show_grid":true
+    }
+}

@@ -7,7 +7,8 @@
         "author":"telemetry-disabled",
         "version-compat":1,
         "pkg_count":3,
-        "con_count":1
+        "con_count":1,
+        "enforce_no_uid_behaviour": "replace" 
     },
     "vis_header": {
         "_comment":"## User-accessible data. Use this space for data seen and edited by users.",
@@ -17,12 +18,6 @@
         "label_y":"Width",
         "label_z":"Height",
         "show_grid":true,
-
-        "ticks_y": 3,
-        "ticklabels_y":["left", "mid", "right"],
-        "ticks_z":[0, 10, 20, 50, 70, 100],
-        "ticklabels_z":["floor", "low", "med", "high", "vh", "roof"],
-        
         "measure-unit":"mm"
     },
     "con": [
@@ -33,13 +28,15 @@
             "dim": [100,100,100],
             "pkg_pos": 
             [{"name": "pkg 1", "dim": [10,10,10], "pos": [0,0,0]},
-             {"name": "pkg 2", "dim": [10,10,10], "pos": [0,10,0]},
-             {"name": "pal 1", "dim": [20,20,20], "pos": [10,0,0]}]
+             {"name": "pkg 1", "dim": [10,10,10], "pos": [0,10,0]},
+             {"name": "pal 1", "dim": [20,20,20], "pos": [10,0,0]},
+             {"name": "pkg 2", "dim": [50,10,20], "pos": [10,50,0]},
+             {"name": "pkg 2", "dim": [10,50,10], "pos": [50,10,0]}]
         }
     ],
     "pkg": {
         "pkg 1": {"name": "pkg 1", "colour": "example-pkg"},
-        "pkg 2": {"name": "pkg 2", "colour": "default"},
+        "pkg 2": {"name": "pkg 2", "colour": "transparent"},
         "pal 1": {"name": "pal 1"}
     },
     "colour" : {
@@ -47,6 +44,12 @@
             "fillcolour": "#ff0000",
             "edgecolour": "#000000",
             "alpha": 1.0,
+            "linewidth": 0.4
+        },
+        "transparent": {
+            "fillcolour": "#ffffff",
+            "edgecolour": "#000000",
+            "alpha": 0.1,
             "linewidth": 0.4
         }
     },
