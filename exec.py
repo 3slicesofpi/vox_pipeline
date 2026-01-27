@@ -1,5 +1,3 @@
-
-
 import re
 import numpy as np
 import matplotlib.pyplot as plt
@@ -37,8 +35,7 @@ def init_plt(visual:dict):
         """
         fig = plt.figure(figsize=(8, 6))
         ax = fig.add_subplot(111, projection='3d')
-        ax.set_aspect('equal')
-        ax.set_autoscale_on(False)
+        toolbar = fig.canvas.manager.toolbar
         for axis, func_set_label, func_set_ticks, func_set_ticklabels in zip(['x', 'y', 'z'], [ax.set_xlabel, ax.set_ylabel, ax.set_zlabel], [ax.set_xticks, ax.set_yticks, ax.set_zticks], [ax.set_xticklabels, ax.set_yticklabels, ax.set_zticklabels]):
             func_set_label(visual.get('label_'+axis, 'X-axis'))
             
@@ -55,8 +52,10 @@ def init_plt(visual:dict):
         if visual.get('minorticks', False): ax.minorticks_on()
         if visual.get('showgrid', True): ax.grid()
         ax.set_title(visual.get('label_title', 'Container Visualization'))
-        
-        return fig, ax
+        toolbar.pan(False)
+        toolbar.zoom(False)
+        toolbar.mode = None
+        return fig, ax, toolbar
 
 class Unique_ID_Enforcer():
     def __init__(self):
@@ -113,91 +112,24 @@ class Container():
         ax.set_xlim(0, self.dimLength)   # X-axis range
         ax.set_ylim(0, self.dimWidth)   # Y-axis range
         ax.set_zlim(0, self.dimHeight)   # Z-axis range
+        # If dimLength, dimWidth, dimHeight are not equal, set_box_aspect to avoid distortion
+        # However, if they differ too much, print a warning.
+        if not (self.dimLength == self.dimWidth == self.dimHeight):
+            ratio_max = max(self.dimLength, self.dimWidth, self.dimHeight) / min(self.dimLength, self.dimWidth, self.dimHeight)
+            if ratio_max > 5:
+                print(f"Warning: Container dimensions differ significantly (Ratio: {ratio_max:.2f}). Visualization may be distorted.")
+            ax.set_box_aspect([self.dimLength, self.dimWidth, self.dimHeight])
         for pkg in self.Packages:
             pkg._render(fig, ax)
-
-class CursorHelper():
-    def __init__(self):
-        self.cursor_state = "highlight" # possible states: highlight, pick
-        self.cursor_zpos_real = 0.0  # approximate z-pos of cursor in 3D space, changes when scroll, 
-        self.hovered_pkg:set = {}  # a list of currently hovered packages
-        self.picked_pkg = None
-
-        self._fixed_view = [None, None, None]
-    def cursor_move(self, event):
-        if not event.inaxes:
-            return
-        s = event.inaxes.format_coord(event.xdata, event.ydata)
-        s = re.findall(r"[-+]?\d*\.?\d+(?:e[-+]?\d+)?", s)
-        if float(s[2]) == 0.0: 
-            cursorpos = [float(s[0]), float(s[1])] 
-        else: return 
-        self.cursor_check(cursorpos)
-        
-    def cursor_click(self, event):
-        self.cursor_state = "pick"
-        if self.picked_pkg:
-            # self._fixed_view[:] = ax.elev, ax.azim, ax.dist
-            self.picked_pkg._update_edgecolor("pick")
-    
-    def cursor_click_release(self, event):
-        self.cursor_state = "highlight"
-        if self.picked_pkg:
-            self.picked_pkg._update_edgecolor("highlight")
-
-    def _highlight_check(self, cursor_pos:list[float]):
-        """ Check if the cursor is hovering over any package in 3D space. """
-        hovered_pkg_new:set = set()
-        for pkg in container.Packages:
-            if pkg._cursor_check(cursor_pos):
-                hovered_pkg_new.add(pkg)
-                if pkg not in self.hovered_pkg:
-                    pkg._update_edgecolor("hover")
-                    if pkg.posz <= self.cursor_zpos_real <= pkg.posz + pkg.dimHeight and not self.picked_pkg:
-                        self.cursor_zpos_real = pkg.posz 
-                        self.picked_pkg = pkg
-                        pkg._update_edgecolor("highlight")
-            else:  # restore
-                if pkg in self.hovered_pkg:
-                    pkg._update_edgecolor("default")
-                if pkg == self.picked_pkg:
-                    self.picked_pkg = None
-        self.hovered_pkg = hovered_pkg_new
-
-    def _pick_move(self, cursor_pos:list[float]):
-        if self.picked_pkg:
-            if self._fixed_view[0] is not None:
-                # ax.view_init(elev=self._fixed_view[0], azim=self._fixed_view[1])
-                # ax.dist = self._fixed_view[2]
-                pass
-            self.picked_pkg.posx = cursor_pos[0]
-            self.picked_pkg.posy = cursor_pos[1]
-            self.picked_pkg.polygon.set_verts(
-                [self.picked_pkg.pos3d[face] for face in self.picked_pkg._C_FACES]
-            )
-                
-    @property
-    def cursor_zpos(self):
-        if self.picked_pkg:
-            return self.picked_pkg.posz
-        return self.cursor_zpos_real
-    def cursor_check(self, cursor_pos:list[float]):
-        match self.cursor_state:
-            case "highlight":
-                self._highlight_check(cursor_pos)
-            case "pick":
-                self._pick_move(cursor_pos)
-            case _: raise ValueError("Invalid cursor state.")
-
 
 class Package():
     _C_FACES = CUBE_FACES
     d_weight = 0.0  # default weight
-    d_FaceColors = ['cyan'] * 6  # default face colors
+    d_FaceColors = ['grey'] * 6  # default face colors
     d_LineWidth = 1  # default line width
     d_EdgeColors = 'r'  # default edge colors
     h_EdgeColors = 'y'  # edge color on hover
-    hi_EdgeColors = 'g'  # edge color on highlight
+    f_EdgeColors = 'g'  # edge color on focus
     p_EdgeColors = 'k'  # edge color on pick
     d_Alpha = 0.25  # default alpha
     def __init__(self, data:dict):
@@ -251,21 +183,23 @@ class Package():
             [x_pos, y_pos + y_dim, z_pos + z_dim]
         ])
         return array
-    
-    def _cursor_check(self, cursor_pos:list[float]) -> bool:
+
+    def _cursor_check(self, posx, posy, posz) -> 0|1|2:
         """ Check if the cursor is over the package in 3D space. """
-        if self.posx <= cursor_pos[0] <= self.posx + self.dimLength:
-            if self.posy <= cursor_pos[1] <= self.posy + self.dimWidth:
-                # ignore posz, (current implementation limitation)
-                return True
-        else: return False
+        if self.posx <= posx <= self.posx + self.dimLength:
+            if self.posy <= posy <= self.posy + self.dimWidth:
+                if self.posz <= posz <= self.posz + self.dimHeight:
+                    return 2
+                return 1
+            return 0
+        return 0
 
     def _update_edgecolor(self, state:str):
         match state:
             case "hover":
                 self.polygon.set_edgecolor(self.h_EdgeColors)
-            case "highlight":
-                self.polygon.set_edgecolor(self.hi_EdgeColors)
+            case "focus":
+                self.polygon.set_edgecolor(self.f_EdgeColors)
             case "pick":
                 self.polygon.set_edgecolor(self.p_EdgeColors)
             case _:
@@ -279,52 +213,141 @@ class Package():
             edgecolors=self.EdgeColors, 
             alpha=self.Alpha)
 
+    def update_pos(self):
+        self.polygon.set_verts(
+                    [self.pos3d[face] for face in self._C_FACES]
+                )
+
     def _render(self, fig, ax):
         ax.add_collection3d(self.polygon)
         self._update_edgecolor("default")
 
+class CursorHelper():
+    def __init__(self):
+        self.posx = 0.0
+        self.posy = 0.0
+        self.posz = 0.0
+
+        self.onfloor = False
+        self.state = "hover" # point hover pick
+        self.hoverpkg = []
+        self.focuspkg = None
+
+        (self.probeline,) = ax.plot(
+            [0, 0], [0, 0], [0, ax.get_zlim()[1]],
+            color="black", linewidth=1.5
+            ) 
+
+    def _update(self):
+        for pkg in container.Packages:
+            pkg._update_edgecolor("default")
+        for pkg in self.hoverpkg:
+            pkg._update_edgecolor("hover")
+        if self.focuspkg:
+            self.focuspkg._update_edgecolor("focus")
+        fig.canvas.draw_idle()
+
+    def _mpl_move(self, event):
+        if not event.inaxes:
+            self.probeline.set_visible(False)
+            self._update()
+            return 
+        s:str = event.inaxes.format_coord(event.xdata, event.ydata)
+        s = re.findall(r"[-+]?\d*\.?\d+(?:e[-+]?\d+)?", s)
+        if float(s[2]) <= 0.001: 
+            self.posx = float(s[0])
+            self.posy = float(s[1])
+            self.onfloor = True
+        else: 
+            self.onfloor = False
+            self.probeline.set_visible(False)
+            self._update()
+            return
+        self.probeline.set_data([self.posx, self.posx], [self.posy, self.posy])
+        self.probeline.set_3d_properties([0, container.dimHeight])
+        self.probeline.set_visible(True)
+        print(self.posx, self.posy, self.posz, self.state)
+
+        if self.state == "hover":
+            for pkg in container.Packages:
+                match pkg._cursor_check(self.posx, self.posy, self.posz):
+                    case 2: 
+                        self.focuspkg = pkg
+                        if pkg not in self.hoverpkg:
+                            self.hoverpkg.append(pkg)
+                    case 1:
+                        if pkg not in self.hoverpkg:
+                            self.hoverpkg.append(pkg)
+                    case 0:
+                        if pkg in self.hoverpkg:
+                            self.hoverpkg.remove(pkg)
+                        if pkg == self.focuspkg:
+                            self.focuspkg = None
+
+            self._update()
+        elif self.state == "focus":
+            # Move focused package
+            if self.focuspkg:
+                self.focuspkg.posx = self.posx
+                self.focuspkg.posy = self.posy
+                self.focuspkg.update_pos()
+                self._update()
+
+    def _mpl_click(self, event):
+        if not event.inaxes:
+            return
+        elif self.focuspkg is not None and self.state == "hover" and event.button==3:
+            self.focuspkg._update_edgecolor("pick")
+            self.state = "focus"
+            self._update()
+    
+    def _mpl_release(self, event):
+        self.state = "hover"
+        self.focuspkg = None
+        self.hoverpkg = []
+                
+    def _mpl_scroll(self, event):
+        if not event.inaxes and self.onfloor:
+            return
+        match self.state:
+            case "click": return
+            case "hover":
+                zposes = {pkg.posz: pkg for pkg in self.hoverpkg}
+                zposes = dict(sorted(zposes.items()))
+                print(zposes)
+                if event.button == 'up':  # bring self.posz to the next highest value on zposes.
+                    for z, pkg in zposes.items():
+                        if z > self.posz and z != self.posz:
+                            self.posz = z
+                            self.focuspkg = pkg
+                            self._update(); return
+                else:  # bring self.posz to the next lowest value on zposes.
+                    for z, pkg in dict(reversed(list(zposes.items()))).items():
+                        if z < self.posz and z != self.posz:
+                            self.posz = z
+                            self.focuspkg = pkg
+                            self._update(); return
+            case "focus":
+                if event.button == 'up' and self.posz + 0.1 <= container.dimHeight - self.focuspkg.dimHeight:
+                    self.posz += 0.1; self.focuspkg.posz += 0.1
+                    self.focuspkg.update_pos()
+                    self._update(); return
+                elif event.button == 'down' and self.posz - 0.1 >= 0:
+                    self.posz -= 0.1; self.focuspkg.posz -= 0.1
+                    self.focuspkg.update_pos()
+                    self._update(); return
+
+
+
+
+fig, ax, toolbar = init_plt(config['visual'])
 cur = CursorHelper()
-def cursor_move(event):
-    if not event.inaxes:
-        return
-    s = event.inaxes.format_coord(event.xdata, event.ydata)
-    s = re.findall(r"[-+]?\d*\.?\d+(?:e[-+]?\d+)?", s)
-    if float(s[2]) == 0.0: 
-        cursorpos = [float(s[0]), float(s[1])] 
-    else: return 
-    cur.cursor_check(cursorpos)
-    fig.canvas.draw_idle()
 
-def mpl_move(event):
-    cur.cursor_move(event)
-    fig.canvas.draw_idle()
-
-def mpl_click(event):
-    cur.cursor_click(event)
-    fig.canvas.draw_idle()
-
-def mpl_click_release(event):
-    cur.cursor_click_release(event)
-    fig.canvas.draw_idle()
-
-def mpl_scroll(event):
-    step = config['visual'].get('scroll_step', 0.5)
-    if event.button == 'up' and cur.cursor_zpos_real + step <= container.dimHeight:
-        cur.cursor_zpos_real += step
-    elif event.button == 'down' and cur.cursor_zpos_real - step >= 0:
-        cur.cursor_zpos_real -= step
-    print(cur.cursor_zpos_real)
-    cur.cursor_move(event)
-    fig.canvas.draw_idle()
-
-fig, ax = init_plt(config['visual'])
-fig.canvas.mpl_connect('motion_notify_event', mpl_move)
-toolbar = fig.canvas.manager.toolbar
-toolbar.pan(False)
-toolbar.zoom(False)
-fig.canvas.mpl_connect('button_press_event', mpl_click)
-fig.canvas.mpl_connect('button_release_event', mpl_click_release)
-fig.canvas.mpl_connect('scroll_event', mpl_scroll)
+ax.set_navigate(False)
+fig.canvas.mpl_connect('motion_notify_event', cur._mpl_move)
+fig.canvas.mpl_connect('button_press_event', cur._mpl_click)
+fig.canvas.mpl_connect('button_release_event', cur._mpl_release)
+fig.canvas.mpl_connect('scroll_event', cur._mpl_scroll)
 container = Container(manifest)
 container._render(fig, ax)
 plt.show()
