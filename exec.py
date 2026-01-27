@@ -121,6 +121,18 @@ class Container():
             ax.set_box_aspect([self.dimLength, self.dimWidth, self.dimHeight])
         for pkg in self.Packages:
             pkg._render(fig, ax)
+    
+    def _export(self) -> dict:
+        return {
+            "Container_ID" : self.Container_ID,
+            "Dimensions" : {"Length": self.dimLength, "Width": self.dimWidth, "Height": self.dimHeight},
+            "Packages" : [p._export() for p in self.Packages]
+        }    
+    
+    def export_tofile(self, filename:str="export.json"):
+        with open(filename, 'w') as f:
+            json.dump(self._export(), f, indent=2)
+        f.close()
 
 class Package():
     _C_FACES = CUBE_FACES
@@ -221,6 +233,14 @@ class Package():
     def _render(self, fig, ax):
         ax.add_collection3d(self.polygon)
         self._update_edgecolor("default")
+
+    def _export(self):
+        return {
+            "Package_ID" : self.Package_ID,
+            "Dimensions" : {"Length" : self.dimLength, "Width" : self.dimWidth, "Height" : self.dimHeight},
+            "Weight" : self.weight,
+            "Position": {"x": self.posx, "y":self.posy, "z":self.posz}
+        }
 
 class CursorHelper():
     def __init__(self):
@@ -338,7 +358,13 @@ class CursorHelper():
                     self._update(); return
 
 
-
+def mpl_onkey(event):
+    match event.key:
+        case 'ctrl+s':
+            print("Info: To save edited manifest, press [ALT]+[S].")
+        case 'alt+s':
+            print("Info: Saving new manifest...")
+            container.export_tofile()
 
 fig, ax, toolbar = init_plt(config['visual'])
 cur = CursorHelper()
@@ -348,6 +374,7 @@ fig.canvas.mpl_connect('motion_notify_event', cur._mpl_move)
 fig.canvas.mpl_connect('button_press_event', cur._mpl_click)
 fig.canvas.mpl_connect('button_release_event', cur._mpl_release)
 fig.canvas.mpl_connect('scroll_event', cur._mpl_scroll)
+fig.canvas.mpl_connect('key_press_event', mpl_onkey)
 container = Container(manifest)
 container._render(fig, ax)
 plt.show()
