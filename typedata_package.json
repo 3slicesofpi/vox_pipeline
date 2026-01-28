@@ -1,0 +1,22 @@
+{
+    "Default": {
+        "Package_Type": "Default",
+        "Dimensions": { "Length": 2, "Width": 2, "Height": 2 },
+        "Weight": 1
+    },
+    "Example1": {
+        "Package_Type": "Example1",
+        "Dimensions": { "Length": 3, "Width": 1, "Height": 1.0 },
+        "Weight": 10.5
+    },
+    "Example2": {
+        "Package_Type": "Example2",
+        "Dimensions": { "Length": 2, "Width": 1, "Height": 1.2 },
+        "Weight": 15.0
+    },
+    "Example3": {
+        "Package_Type": "Example3",
+        "Dimensions": { "Length": 1, "Width": 1, "Height": 1.5 },
+        "Weight": 20.0
+    }
+}

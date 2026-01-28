@@ -15,6 +15,10 @@ with open('manifest.json', 'r') as f:
     manifest = json.load(f) 
 with open('config.json', 'r') as f:
     config = json.load(f)
+with open('typedata_container.json', 'r') as f:
+    td_con:dict[dict] = json.load(f)
+with open('typedata_package.json', 'r') as f:
+    td_pkg:dict[dict] = json.load(f)
 
 ALLOWED_CONTAINERS_COUNT = 1
 CUBE_FACES = np.array([  # define cube faces using NumPy array reshaping
@@ -36,18 +40,10 @@ def init_plt(visual:dict):
         fig = plt.figure(figsize=(8, 6))
         ax = fig.add_subplot(111, projection='3d')
         toolbar = fig.canvas.manager.toolbar
-        for axis, func_set_label, func_set_ticks, func_set_ticklabels in zip(['x', 'y', 'z'], [ax.set_xlabel, ax.set_ylabel, ax.set_zlabel], [ax.set_xticks, ax.set_yticks, ax.set_zticks], [ax.set_xticklabels, ax.set_yticklabels, ax.set_zticklabels]):
-            func_set_label(visual.get('label_'+axis, 'X-axis'))
-            
-            # if visual.get('ticks_'+axis, False):
-            #     ticks = visual.get('ticks_'+axis)
-            #     labels = visual.get('ticklabels_'+axis, [])
-            #     if type(ticks) == list:
-            #         func_set_ticks(ticks)
-            #         if len(labels) == len(ticks): func_set_ticklabels(labels)
-            #     if type(ticks) == int and axis in ('x', 'y'):  # z-axis not supported. print warn?.
-            #         ax.locator_params(axis=axis, nbins=ticks)
-            #         if len(labels) == ticks: func_set_ticklabels(labels)
+        
+        ax.set_xlabel(visual.get('label_x', "Length"))
+        ax.set_ylabel(visual.get('label_y', "Width"))
+        ax.set_zlabel(visual.get('label_z', "Height"))
         
         if visual.get('minorticks', False): ax.minorticks_on()
         if visual.get('showgrid', True): ax.grid()
@@ -85,6 +81,16 @@ class Unique_ID_Enforcer():
             value += 1
 uid_e = Unique_ID_Enforcer()
 
+class New_Type_Generator():
+    def __init__(self):
+        self._makeObj = self._makeGen()
+    def new(self):
+        return next(self._makeObj)
+    def _makeGen(self):
+        while True:
+            yield "ErrorType"
+ntype_g = New_Type_Generator()
+
 class ResourceHandler():
     def __init__(self):
         pass
@@ -96,14 +102,20 @@ class ResourceHandler():
 class Container():
     def __init__(self, data:dict):  # data is expected to be dict holding all Container data.
         self.Container_ID = uid_e.test("Container_ID",data)
+        self.Container_Type = data.get("Container_Type", ntype_g.new())
+        td:dict = td_con.get(self.Container_Type, "Default")
 
-        dim:dict = data.get("Dimensions", {})
+        dim:dict = td.get("Dimensions", {})
         self.dimLength = dim.get("Length", 0)
         self.dimWidth = dim.get("Width", 0)
         self.dimHeight = dim.get("Height", 0)
 
+        self.weight = td.get("Weight", 0)
+
         self.Packages = [Package(pkg) for pkg in data.get("Packages", [])]
-    
+    @property
+    def volume(self):
+        return self.dimLength * self.dimWidth * self.dimHeight
     @property
     def dim(self):
         return np.array(self.dimLength, self.dimWidth, self.dimHeight)
@@ -123,9 +135,14 @@ class Container():
             pkg._render(fig, ax)
     
     def _export(self) -> dict:
+        volume_amt = sum(p.volume for p in self.Packages)
         return {
             "Container_ID" : self.Container_ID,
             "Dimensions" : {"Length": self.dimLength, "Width": self.dimWidth, "Height": self.dimHeight},
+            "Weight" : self.weight,
+            "Gross_Weight" : self.weight+sum(p.weight for p in self.Packages),
+            "Volume_Used_Amount" : volume_amt,
+            "Volume_Utilization":  volume_amt/self.volume,
             "Packages" : [p._export() for p in self.Packages]
         }    
     
@@ -146,13 +163,15 @@ class Package():
     d_Alpha = 0.25  # default alpha
     def __init__(self, data:dict):
         self.Package_ID = uid_e.test("Package_ID",data)
+        self.Package_Type = data.get("Package_Type", ntype_g.new())
+        td:dict = td_pkg.get(self.Package_Type, "Default")
 
-        dim:dict = data.get("Dimensions", {})
+        dim:dict = td.get("Dimensions", {})
         self.dimLength = dim.get("Length", 0)
         self.dimWidth = dim.get("Width", 0)
         self.dimHeight = dim.get("Height", 0)
 
-        self.weight = data.get("Weight", self.d_weight)
+        self.weight = td.get("Weight", self.d_weight)
 
         pos:dict = data.get("Position", {})
         self.posx = pos.get("x", 0)
@@ -365,6 +384,21 @@ def mpl_onkey(event):
         case 'alt+s':
             print("Info: Saving new manifest...")
             container.export_tofile()
+            print("Info: Saving Load Views... ", end='')
+            for name, view in {
+                "iso":   (30, -60),
+                "top":   (90, -90),
+                "side":  (0, 0),
+                "front": (0, -90),
+                "back":  (0, 90),
+            }.items():
+                ax.view_init(elev=view[0], azim=view[1])
+                fig.canvas.draw_idle()
+                fig.savefig(f"imgs\{name}.png", dpi=200, bbox_inches="tight")
+                print(name[0], end=' ')
+            print(" ...done!")
+            ax.view_init(30, -60)
+            fig.canvas.draw_idle()
 
 fig, ax, toolbar = init_plt(config['visual'])
 cur = CursorHelper()

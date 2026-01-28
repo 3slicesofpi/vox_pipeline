@@ -1,0 +1,11 @@
+{
+    "Default" : {
+        "Container_Type": "Default",
+        "Dimensions": { "Length": 10, "Width": 10, "Height": 10 }
+
+    },
+    "Example": {
+        "Container_Type": "Example",
+        "Dimensions": { "Length": 5, "Width": 7, "Height": 4 }
+    }
+}
