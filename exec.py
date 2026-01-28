@@ -136,15 +136,34 @@ class Container():
     
     def _export(self) -> dict:
         volume_amt = sum(p.volume for p in self.Packages)
+            
         return {
             "Container_ID" : self.Container_ID,
+            "Container_Type": self.Container_Type,
             "Dimensions" : {"Length": self.dimLength, "Width": self.dimWidth, "Height": self.dimHeight},
             "Weight" : self.weight,
             "Gross_Weight" : self.weight+sum(p.weight for p in self.Packages),
             "Volume_Used_Amount" : volume_amt,
-            "Volume_Utilization":  volume_amt/self.volume,
+            "Volume_Utilization":  f"{volume_amt/self.volume:.4f}",
+            "Package_Slate": self.collate_Package_Slate(),
             "Packages" : [p._export() for p in self.Packages]
         }    
+
+    def collate_Package_Slate(self) -> dict:
+        slate = {}
+        for pkg in self.Packages:
+            if pkg.Package_Type in slate:
+                slate[pkg.Package_Type]["Quantity"] += 1
+            else:
+                td_pkg_i = pkg._export()
+                slate[pkg.Package_Type] = {
+                    "Package_Type" : td_pkg_i["Package_Type"],
+                    "Quantity" : 1,
+                    "Dimensions" : td_pkg_i["Dimensions"],
+                    "Weight" : td_pkg_i["Weight"]
+                }
+        return slate
+
     
     def export_tofile(self, filename:str="export.json"):
         with open(filename, 'w') as f:
@@ -256,6 +275,7 @@ class Package():
     def _export(self):
         return {
             "Package_ID" : self.Package_ID,
+            "Package_Type": self.Package_Type,
             "Dimensions" : {"Length" : self.dimLength, "Width" : self.dimWidth, "Height" : self.dimHeight},
             "Weight" : self.weight,
             "Position": {"x": self.posx, "y":self.posy, "z":self.posz}
@@ -385,18 +405,36 @@ def mpl_onkey(event):
             print("Info: Saving new manifest...")
             container.export_tofile()
             print("Info: Saving Load Views... ", end='')
+            ax.xaxis.pane.set_visible(False)
+            ax.yaxis.pane.set_visible(False)
+            ax.zaxis.pane.set_visible(False)
             for name, view in {
-                "iso":   (30, -60),
-                "top":   (90, -90),
-                "side":  (0, 0),
-                "front": (0, -90),
-                "back":  (0, 90),
+                #name: (elev, azim, proj)
+                "iso":   (30, -60, "ortho"),
+                "top":   (90, -90, "persp"),
+                "left":  (0, 0, "persp"),
+                "right": (0, 180, "persp"),
+                "front": (0, -90, "persp"),
+                "back":  (0, 90, "persp"),
             }.items():
                 ax.view_init(elev=view[0], azim=view[1])
+                ax.set_proj_type(view[2])
                 fig.canvas.draw_idle()
                 fig.savefig(f"imgs\{name}.png", dpi=200, bbox_inches="tight")
                 print(name[0], end=' ')
+
             print(" ...done!")
+            # Create a report after alt-saving
+            if config.get("report", {}).get("create_after_save", False): # if report config is present within config data...
+                print("Info: ", end="")
+                # manually do a python \report_generator
+                import report_generator  # this is not best practice.
+
+            # reset the view
+            ax.set_proj_type('persp')
+            ax.xaxis.pane.set_visible(True)
+            ax.yaxis.pane.set_visible(True)
+            ax.zaxis.pane.set_visible(True)
             ax.view_init(30, -60)
             fig.canvas.draw_idle()
 

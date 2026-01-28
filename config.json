@@ -9,5 +9,8 @@
         "label_y":"Width",
         "label_z":"Height",
         "show_grid":true
+    },
+    "report": {
+        "create_after_save": true
     }
 }

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Container Dashboard</title>
+
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #ffffff;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .dashboard {
+      max-width: 1100px;
+      margin: auto;
+    }
+
+    h1 {
+      margin-bottom: 5px;
+    }
+
+    .summary {
+      border: 1px solid #ccc;
+      padding: 12px;
+      margin-bottom: 20px;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 30px;
+    }
+
+    th, td {
+      border: 1px solid #bbb;
+      padding: 6px 8px;
+      text-align: center;
+    }
+
+    th {
+      background: #f2f2f2;
+    }
+
+    .footer {
+      color: #666;
+      font-size: 12px;
+      text-align: right;
+    }
+
+    .image-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 30px;
+    }
+
+    .image-grid img {
+    width: 100%;
+    height: auto;
+    border: 1px solid #ccc;
+    background: #fafafa;
+    }
+
+    figure {
+    margin: 0;
+    }
+
+    figcaption {
+    text-align: center;
+    margin-top: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    }
+  </style>
+</head>
+
+<body>
+<div class="dashboard">
+
+  <!-- HEADER / SUMMARY -->
+  <div class="summary">
+    <h1>Summary</h1>
+    <div>
+      <!-- headlines -->
+      <strong>Container:</strong>
+      {{ Container_Type }} {{ Container_ID }}
+      ({{ Dimensions.Length }} × {{ Dimensions.Width }} × {{ Dimensions.Height }} cm)
+    </div>
+
+    <div class="summary-grid">
+      <!-- summary... lines -->
+      <div><strong>Total Volume:</strong> {{ Volume_Used_Amount }}/{{ Volume }} m³</div>
+      <div><strong>Total Weight:</strong> {{ Gross_Weight }} kg</div>
+      <div><strong>Utilization:</strong> {{ Volume_Utilization }}%</div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <table>
+    <thead>
+      <tr>
+        <th>Item Name</th>
+        <th>Count</th>
+        <th>Length (cm)</th>
+        <th>Width (cm)</th>
+        <th>Height (cm)</th>
+        <th>Weight (kg)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for pkg in Package_Slate.values() %}
+      <tr>
+        <td>{{ pkg.Package_Type }}</td>
+        <td>{{ pkg.Quantity }}</td>
+        <td>{{ pkg.Dimensions.Length }}</td>
+        <td>{{ pkg.Dimensions.Width }}</td>
+        <td>{{ pkg.Dimensions.Height }}</td>
+        <td>{{ pkg.Weight }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <!-- IMAGE GRID -->
+  <div class="image-grid">
+  {% for view in images %}
+  <figure>
+      <img src="{{ view.file }}" alt="{{ view.label }}">
+      <!-- figception -->
+      <figcaption>{{ view.label }}</figcaption>
+  </figure>
+  {% endfor %}
+  </div>
+
+  <div class="footer">
+    Dimension Unit: (cm) &nbsp; | &nbsp; Weight Unit: (kg)
+  </div>
+
+</div>
+</body>
+</html>
