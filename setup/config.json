@@ -11,6 +11,8 @@
         "show_grid":true
     },
     "report": {
-        "create_after_save": true
+        "create_after_save": true,
+        "open_result_pdf": true,
+        "open_result_html": true
     }
 }

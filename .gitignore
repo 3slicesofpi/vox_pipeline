@@ -2,3 +2,4 @@ venv/
 test*
 __pycache__/
 Report_*.html
+git_ignorethis/

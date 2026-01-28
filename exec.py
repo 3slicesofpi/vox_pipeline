@@ -5,19 +5,15 @@ import matplotlib.transforms as mtransforms
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from mpl_toolkits.mplot3d import proj3d
 
-from typing import Any, Dict, Type, TypeVar
-from dataclasses import dataclass, replace
 import json
 
-with open('resources_default.json', 'r') as cfgfile:
-    temp_CFG = json.load(cfgfile)
 with open('manifest.json', 'r') as f:
     manifest = json.load(f) 
-with open('config.json', 'r') as f:
+with open('setup/config.json', 'r') as f:
     config = json.load(f)
-with open('typedata_container.json', 'r') as f:
+with open('setup/typedata_container.json', 'r') as f:
     td_con:dict[dict] = json.load(f)
-with open('typedata_package.json', 'r') as f:
+with open('setup/typedata_package.json', 'r') as f:
     td_pkg:dict[dict] = json.load(f)
 
 ALLOWED_CONTAINERS_COUNT = 1
