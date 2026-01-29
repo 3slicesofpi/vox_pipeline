@@ -46,7 +46,7 @@ def init_plt(visual:dict):
         ax.set_title(visual.get('label_title', 'Container Visualization'))
         toolbar.pan(False)
         toolbar.zoom(False)
-        toolbar.mode = None
+        #   
         return fig, ax, toolbar
 
 class Unique_ID_Enforcer():
@@ -169,13 +169,23 @@ class Container():
 class Package():
     _C_FACES = CUBE_FACES
     d_weight = 0.0  # default weight
-    d_FaceColors = ['grey'] * 6  # default face colors
-    d_LineWidth = 1  # default line width
+    d_FaceColors = ['white'] * 6  # default face colors
+    # no facecolor
+    f_FaceColors = ['green', 'cyan', 'cyan', 'cyan', 'cyan', 'cyan']   # edge color on focus
+    p_FaceColors = ['green', 'cyan', 'cyan', 'cyan', 'cyan', 'cyan'] * 6  # edge color on pick
+    d_LineWidth = 1.3  # default line width
+    h_LineWidth = 2.5  # line width on hover
+    f_LineWidth = 2.5  # line width on focus
+    p_LineWidth = 2.5  # line width on pick
     d_EdgeColors = 'r'  # default edge colors
-    h_EdgeColors = 'y'  # edge color on hover
+    h_EdgeColors = 'lime'  # edge color on hover
     f_EdgeColors = 'g'  # edge color on focus
     p_EdgeColors = 'k'  # edge color on pick
-    d_Alpha = 0.25  # default alpha
+    d_Alpha = 0.12  # default alpha
+    h_Alpha = 0.33  # transparency on hover
+    f_Alpha = 0.80  # transparency on focus
+    p_Alpha = 0.80  # transparency on pick
+    posSnap = config['visual'].get('snap_behaviour', {}).get('pkg_move', 2)
     def __init__(self, data:dict):
         self.Package_ID = uid_e.test("Package_ID",data)
         self.Package_Type = data.get("Package_Type", ntype_g.new())
@@ -240,16 +250,31 @@ class Package():
             return 0
         return 0
 
-    def _update_edgecolor(self, state:str):
+    def _update_costume(self, state:str):
         match state:
             case "hover":
                 self.polygon.set_edgecolor(self.h_EdgeColors)
+                self.polygon.set_facecolor(self.FaceColors)
+                self.polygon.set_linewidth(self.h_LineWidth)
+                self.polygon.set_alpha(self.h_Alpha)
             case "focus":
                 self.polygon.set_edgecolor(self.f_EdgeColors)
+                self.polygon.set_facecolor(self.f_FaceColors)
+                self.polygon.set_linewidth(self.f_LineWidth)
+                self.polygon.set_alpha(self.f_Alpha)
             case "pick":
                 self.polygon.set_edgecolor(self.p_EdgeColors)
+                self.polygon.set_facecolor(self.p_FaceColors)
+                self.polygon.set_linewidth(self.p_LineWidth)
+                self.polygon.set_alpha(self.p_Alpha)
             case _:
-                self.polygon.set_edgecolor(self.EdgeColors)
+                self._reset_costume()
+                
+    def _reset_costume(self):
+        self.polygon.set_edgecolor(self.EdgeColors)
+        self.polygon.set_facecolor(self.FaceColors)
+        self.polygon.set_linewidth(self.LineWidth)
+        self.polygon.set_alpha(self.Alpha)
 
     def _init_polygon(self):
         self.polygon = Poly3DCollection(
@@ -263,10 +288,16 @@ class Package():
         self.polygon.set_verts(
                     [self.pos3d[face] for face in self._C_FACES]
                 )
+    
+    def _moveTo(self, posx:float=None, posy:float=None, posz:float=None):
+        if posx is not None and 0 < posx <= container.dimLength-self.dimLength : self.posx = round(posx, self.posSnap) 
+        if posy is not None and 0 < posy <= container.dimWidth-self.dimWidth : self.posy = round(posy, self.posSnap) 
+        if posz is not None and 0 < posz <= container.dimHeight-self.dimHeight : self.posz = round(posz, self.posSnap)
+        self.update_pos()
 
     def _render(self, fig, ax):
         ax.add_collection3d(self.polygon)
-        self._update_edgecolor("default")
+        self._update_costume("default")
 
     def _export(self):
         return {
@@ -290,16 +321,16 @@ class CursorHelper():
 
         (self.probeline,) = ax.plot(
             [0, 0], [0, 0], [0, ax.get_zlim()[1]],
-            color="black", linewidth=1.5
+            color="black", linewidth=1.3
             ) 
 
     def _update(self):
         for pkg in container.Packages:
-            pkg._update_edgecolor("default")
+            pkg._update_costume("default")
         for pkg in self.hoverpkg:
-            pkg._update_edgecolor("hover")
+            pkg._update_costume("hover")
         if self.focuspkg:
-            self.focuspkg._update_edgecolor("focus")
+            self.focuspkg._update_costume("focus")
         fig.canvas.draw_idle()
 
     def _mpl_move(self, event):
@@ -343,16 +374,14 @@ class CursorHelper():
         elif self.state == "focus":
             # Move focused package
             if self.focuspkg:
-                self.focuspkg.posx = self.posx
-                self.focuspkg.posy = self.posy
-                self.focuspkg.update_pos()
+                self.focuspkg._moveTo(posx=self.posx, posy=self.posy)
                 self._update()
 
     def _mpl_click(self, event):
         if not event.inaxes:
             return
         elif self.focuspkg is not None and self.state == "hover" and event.button==3:
-            self.focuspkg._update_edgecolor("pick")
+            self.focuspkg._update_costume("pick")
             self.state = "focus"
             self._update()
     
@@ -369,7 +398,7 @@ class CursorHelper():
             case "hover":
                 zposes = {pkg.posz: pkg for pkg in self.hoverpkg}
                 zposes = dict(sorted(zposes.items()))
-                print(zposes)
+
                 if event.button == 'up':  # bring self.posz to the next highest value on zposes.
                     for z, pkg in zposes.items():
                         if z > self.posz and z != self.posz:
@@ -384,11 +413,11 @@ class CursorHelper():
                             self._update(); return
             case "focus":
                 if event.button == 'up' and self.posz + 0.1 <= container.dimHeight - self.focuspkg.dimHeight:
-                    self.posz += 0.1; self.focuspkg.posz += 0.1
+                    self.posz += 0.1; self.focuspkg.moveTo(posz=self.posz)
                     self.focuspkg.update_pos()
                     self._update(); return
                 elif event.button == 'down' and self.posz - 0.1 >= 0:
-                    self.posz -= 0.1; self.focuspkg.posz -= 0.1
+                    self.posz -= 0.1; self.focuspkg.moveTo(posz=self.posz)
                     self.focuspkg.update_pos()
                     self._update(); return
 
@@ -401,9 +430,11 @@ def mpl_onkey(event):
             print("Info: Saving new manifest...")
             container.export_tofile()
             print("Info: Saving Load Views... ", end='')
+            # prepare a new view
             ax.xaxis.pane.set_visible(False)
             ax.yaxis.pane.set_visible(False)
             ax.zaxis.pane.set_visible(False)
+            cur.probeline.set_visible(False)
             for name, view in {
                 #name: (elev, azim, proj)
                 "iso":   (30, -60, "ortho"),
@@ -431,6 +462,7 @@ def mpl_onkey(event):
             ax.xaxis.pane.set_visible(True)
             ax.yaxis.pane.set_visible(True)
             ax.zaxis.pane.set_visible(True)
+            cur.probeline.set_visible(True)
             ax.view_init(30, -60)
             fig.canvas.draw_idle()
 

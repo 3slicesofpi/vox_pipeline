@@ -1,0 +1,19 @@
+{
+    "Container": {
+        "Container_Type": "Example"
+    },
+    "Packages": {
+        "Example1": {
+            "Package_Type": "Example1",
+            "Quantity": 2
+        },
+        "Example2": {
+            "Package_Type": "Example2",
+            "Quantity": 2
+        },
+        "Example3": {
+            "Package_Type": "Example3",
+            "Quantity": 2
+        }
+    }
+}
