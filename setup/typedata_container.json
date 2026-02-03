@@ -1,12 +1,28 @@
 {
     "Default" : {
         "Container_Type": "Default",
-        "Dimensions": { "Length": 10, "Width": 10, "Height": 10 }
-
+        "Dimensions": { "Length": 10, "Width": 10, "Height": 10 },
+        "Weight": 0,
+        "WeightLimit": -1
     },
     "Example": {
         "Container_Type": "Example",
-        "Dimensions": { "Length": 5, "Width": 7, "Height": 4 }
+        "Dimensions": { "Length": 5, "Width": 7, "Height": 4 },
+        "Weight": 250,
+        "WeightLimit": -1
     },
-    "" : {}
+    "40ft High Cube Container" : {
+        "Container_Type": "40ft High Cube Container",
+        "Dimensions": { "Length": 12.03, "Width": 2.35, "Height": 2.62 },
+        "DimensionBuffer": { "Length": 0.03, "Width": 0.05, "Height": 0.17 },
+        "Weight": 3820,
+        "WeightLimit": 26660
+    },
+    "20ft Container" : {
+        "Container_Type": "20ft Container",
+        "Dimensions": { "Length": 5.9, "Width": 2.35, "Height": 2.39 },
+        "DimensionBuffer": {"Length": 0.05, "Width":0.05, "Height": 0.09 },
+        "Weight": 2250,
+        "WeightLimit": 25980
+    }
 }

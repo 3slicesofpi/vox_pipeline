@@ -87,18 +87,11 @@ class New_Type_Generator():
             yield "ErrorType"
 ntype_g = New_Type_Generator()
 
-class ResourceHandler():
-    def __init__(self):
-        pass
-    @classmethod
-    def _fromfile():
-        pass
-
-
 def dict_grabber(key:str, default:str, *dicts):
     for d in dicts:
         if key in d:
             return d[key]
+    print("Warning: Key", key, "not found, default", default, "used.")
     return default
 
 class Container():
@@ -113,7 +106,8 @@ class Container():
         self.dimWidth = dim.get("Width", 0)
         self.dimHeight = dim.get("Height", 0)
 
-        self.weight = dict_grabber("Weight", 0, data, td)
+        self.Weight = dict_grabber("Weight", 0, data, td)
+        self.WeightLimit = dict_grabber("WeightLimit", -1, data, td)
 
         self.Packages = [Package(pkg) for pkg in data.get("Packages", [])]
     @property
@@ -144,8 +138,8 @@ class Container():
             "Container_ID" : self.Container_ID,
             "Container_Type": self.Container_Type,
             "Dimensions" : {"Length": self.dimLength, "Width": self.dimWidth, "Height": self.dimHeight},
-            "Weight" : self.weight,
-            "Gross_Weight" : self.weight+sum(p.weight for p in self.Packages),
+            "Weight" : self.Weight,
+            "Gross_Weight" : self.Weight+sum(p.Weight for p in self.Packages),
             "Volume_Used_Amount" : volume_amt,
             "Volume_Utilization":  f"{volume_amt/self.volume:.4f}",
             "Package_Slate": self.collate_Package_Slate(),
@@ -175,7 +169,7 @@ class Container():
 
 class Package():
     _C_FACES = CUBE_FACES
-    d_weight = 0.0  # default weight
+    d_Weight = 0.0  # default Weight
     d_FaceColors = ['white'] * 6  # default face colors
     # no facecolor
     f_FaceColors = ['green', 'cyan', 'cyan', 'cyan', 'cyan', 'cyan']   # edge color on focus
@@ -184,12 +178,12 @@ class Package():
     h_LineWidth = 2.5  # line width on hover
     f_LineWidth = 2.5  # line width on focus
     p_LineWidth = 2.5  # line width on pick
-    d_EdgeColors = 'r'  # default edge colors
+    d_EdgeColors = 'k'  # default edge colors
     h_EdgeColors = 'lime'  # edge color on hover
     f_EdgeColors = 'g'  # edge color on focus
     p_EdgeColors = 'k'  # edge color on pick
     d_Alpha = 0.12  # default alpha
-    h_Alpha = 0.33  # transparency on hover
+    h_Alpha = 0.50  # transparency on hover
     f_Alpha = 0.80  # transparency on focus
     p_Alpha = 0.80  # transparency on pick
     posSnap = config['visual'].get('snap_behaviour', {}).get('pkg_move', 2)
@@ -203,14 +197,21 @@ class Package():
         self.dimWidth = dim.get("Width", 0)
         self.dimHeight = dim.get("Height", 0)
 
-        self.weight = dict_grabber("Weight", 0, data, td)
+        self.Weight = dict_grabber("Weight", 0, data, td)
+        self.WeightLimit = dict_grabber("WeightLimit", -1, data, td)
 
         pos:dict = data.get("Position", {})
         self.posx = pos.get("x", 0)
         self.posy = pos.get("y", 0)
         self.posz = pos.get("z", 0)    
-
-        self.FaceColors = self.d_FaceColors
+        
+        color = dict_grabber("Color", self.d_FaceColors, data, td)
+        if type(color) == list and len(color) == 6:
+            self.FaceColors = color
+        elif type(color) == str:
+            self.FaceColors = [color] * 6
+        else: 
+            self.FaceColors = self.d_FaceColors
         self.LineWidth = self.d_LineWidth
         self.EdgeColors = self.d_EdgeColors
         self.Alpha = self.d_Alpha
@@ -276,7 +277,7 @@ class Package():
                 self.polygon.set_alpha(self.p_Alpha)
             case _:
                 self._reset_costume()
-                
+    
     def _reset_costume(self):
         self.polygon.set_edgecolor(self.EdgeColors)
         self.polygon.set_facecolor(self.FaceColors)
@@ -311,7 +312,7 @@ class Package():
             "Package_ID" : self.Package_ID,
             "Package_Type": self.Package_Type,
             "Dimensions" : {"Length" : self.dimLength, "Width" : self.dimWidth, "Height" : self.dimHeight},
-            "Weight" : self.weight,
+            "Weight" : self.Weight,
             "Position": {"x": self.posx, "y":self.posy, "z":self.posz}
         }
 
@@ -428,50 +429,77 @@ class CursorHelper():
                     self.focuspkg.update_pos()
                     self._update(); return
 
+def save_container():
+    print("Info: Saving new manifest...")
+    container.export_tofile()
+    print("Info: Saving Load Views... ", end='')
+    # prepare a new view
+    ax.xaxis.pane.set_visible(False)
+    ax.yaxis.pane.set_visible(False)
+    ax.zaxis.pane.set_visible(False)
+    cur.probeline.set_visible(False)
+    for name, view in {
+        #name: (elev, azim, proj)
+        "iso":   (30, -60, "ortho"),
+        "top":   (90, -90, "persp"),
+        "left":  (0, 0, "persp"),
+        "right": (0, 180, "persp"),
+        "front": (0, -90, "persp"),
+        "back":  (0, 90, "persp"),
+    }.items():
+        ax.view_init(elev=view[0], azim=view[1])
+        ax.set_proj_type(view[2])
+        fig.canvas.draw_idle()
+        fig.savefig(f"imgs\{name}.png", dpi=200, bbox_inches="tight")
+        print(name[0], end=' ')
+
+    print(" ...done!")
+    # Create a report after alt-saving
+    if config.get("report", {}).get("create_after_save", False): # if report config is present within config data...
+        print("Info: ", end="")
+        # manually do a python \report_generator
+        import report_generator  # this is not best practice.
+
+    # reset the view
+    ax.set_proj_type('persp')
+    ax.xaxis.pane.set_visible(True)
+    ax.yaxis.pane.set_visible(True)
+    ax.zaxis.pane.set_visible(True)
+    cur.probeline.set_visible(True)
+    ax.view_init(30, -60)
+    fig.canvas.draw_idle()
+
+def toggle_package_alpha():
+    alpha = 0
+    print("Changed Package Transparency. Move cursor to take effect.")
+    while True:
+        match alpha:
+            case 0:
+                alpha = 1
+            case 1:
+                alpha = Package.d_Alpha
+            case Package.d_Alpha:
+                alpha = 0
+        for p in container.Packages:
+            p.Alpha = alpha
+            p.polygon.set_alpha(alpha)
+        fig.canvas.draw_idle()
+        yield None
+
+Obj_toggle_package_alpha = toggle_package_alpha()
+def tog_pkg_alpha():
+    return next(Obj_toggle_package_alpha)
+
 
 def mpl_onkey(event):
     match event.key:
         case 'ctrl+s':
+            print("Info: Saved Current VIEW")
             print("Info: To save edited manifest, press [ALT]+[S].")
         case 'alt+s':
-            print("Info: Saving new manifest...")
-            container.export_tofile()
-            print("Info: Saving Load Views... ", end='')
-            # prepare a new view
-            ax.xaxis.pane.set_visible(False)
-            ax.yaxis.pane.set_visible(False)
-            ax.zaxis.pane.set_visible(False)
-            cur.probeline.set_visible(False)
-            for name, view in {
-                #name: (elev, azim, proj)
-                "iso":   (30, -60, "ortho"),
-                "top":   (90, -90, "persp"),
-                "left":  (0, 0, "persp"),
-                "right": (0, 180, "persp"),
-                "front": (0, -90, "persp"),
-                "back":  (0, 90, "persp"),
-            }.items():
-                ax.view_init(elev=view[0], azim=view[1])
-                ax.set_proj_type(view[2])
-                fig.canvas.draw_idle()
-                fig.savefig(f"imgs\{name}.png", dpi=200, bbox_inches="tight")
-                print(name[0], end=' ')
-
-            print(" ...done!")
-            # Create a report after alt-saving
-            if config.get("report", {}).get("create_after_save", False): # if report config is present within config data...
-                print("Info: ", end="")
-                # manually do a python \report_generator
-                import report_generator  # this is not best practice.
-
-            # reset the view
-            ax.set_proj_type('persp')
-            ax.xaxis.pane.set_visible(True)
-            ax.yaxis.pane.set_visible(True)
-            ax.zaxis.pane.set_visible(True)
-            cur.probeline.set_visible(True)
-            ax.view_init(30, -60)
-            fig.canvas.draw_idle()
+            save_container()
+        case 'alt+t':
+            tog_pkg_alpha()
 
 fig, ax, toolbar = init_plt(config['visual'])
 cur = CursorHelper()

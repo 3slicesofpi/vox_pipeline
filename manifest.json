@@ -20,18 +20,18 @@
     },
     { 
       "Package_ID": 104,
-      "Package_Type": "Example1",
+      "Package_Type": "ExamplePallet",
       "Position": { "x": 1.5, "y": 2.0, "z": 0 }
     },
     { 
       "Package_ID": 105,
       "Package_Type": "Example2",
-      "Position": { "x": 1.5, "y": 2.0, "z": 1.0 }
+      "Position": { "x": 1.5, "y": 2.0, "z": 0.3 }
     },
     { 
       "Package_ID": 106,
       "Package_Type": "Example3",
-      "Position": { "x": 1.5, "y": 2.0, "z": 2.2 }
+      "Position": { "x": 1.5, "y": 2.0, "z": 1.5 }
     }
   ]
 }
