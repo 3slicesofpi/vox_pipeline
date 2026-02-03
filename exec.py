@@ -95,18 +95,25 @@ class ResourceHandler():
         pass
 
 
+def dict_grabber(key:str, default:str, *dicts):
+    for d in dicts:
+        if key in d:
+            return d[key]
+    return default
+
 class Container():
+        
     def __init__(self, data:dict):  # data is expected to be dict holding all Container data.
         self.Container_ID = uid_e.test("Container_ID",data)
         self.Container_Type = data.get("Container_Type", ntype_g.new())
         td:dict = td_con.get(self.Container_Type, "Default")
 
-        dim:dict = td.get("Dimensions", {})
+        dim:dict = dict_grabber("Dimensions", {}, data, td)
         self.dimLength = dim.get("Length", 0)
         self.dimWidth = dim.get("Width", 0)
         self.dimHeight = dim.get("Height", 0)
 
-        self.weight = td.get("Weight", 0)
+        self.weight = dict_grabber("Weight", 0, data, td)
 
         self.Packages = [Package(pkg) for pkg in data.get("Packages", [])]
     @property
@@ -191,12 +198,12 @@ class Package():
         self.Package_Type = data.get("Package_Type", ntype_g.new())
         td:dict = td_pkg.get(self.Package_Type, "Default")
 
-        dim:dict = td.get("Dimensions", {})
+        dim:dict = dict_grabber("Dimensions", {}, data, td)
         self.dimLength = dim.get("Length", 0)
         self.dimWidth = dim.get("Width", 0)
         self.dimHeight = dim.get("Height", 0)
 
-        self.weight = td.get("Weight", self.d_weight)
+        self.weight = dict_grabber("Weight", 0, data, td)
 
         pos:dict = data.get("Position", {})
         self.posx = pos.get("x", 0)
@@ -413,11 +420,11 @@ class CursorHelper():
                             self._update(); return
             case "focus":
                 if event.button == 'up' and self.posz + 0.1 <= container.dimHeight - self.focuspkg.dimHeight:
-                    self.posz += 0.1; self.focuspkg.moveTo(posz=self.posz)
+                    self.posz += 0.1; self.focuspkg._moveTo(posz=self.posz)
                     self.focuspkg.update_pos()
                     self._update(); return
                 elif event.button == 'down' and self.posz - 0.1 >= 0:
-                    self.posz -= 0.1; self.focuspkg.moveTo(posz=self.posz)
+                    self.posz -= 0.1; self.focuspkg._moveTo(posz=self.posz)
                     self.focuspkg.update_pos()
                     self._update(); return
 

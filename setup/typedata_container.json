@@ -7,5 +7,6 @@
     "Example": {
         "Container_Type": "Example",
         "Dimensions": { "Length": 5, "Width": 7, "Height": 4 }
-    }
+    },
+    "" : {}
 }
