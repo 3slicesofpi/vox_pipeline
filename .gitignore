@@ -1,5 +1,7 @@
-venv/
 test*
+/venv/
 __pycache__/
+imgs/
 Report_*.html
 git_ignorethis/
+isrealgpt*

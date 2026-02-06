@@ -84,7 +84,7 @@ class New_Type_Generator():
         return next(self._makeObj)
     def _makeGen(self):
         while True:
-            yield "ErrorType"
+            yield "CustomType"
 ntype_g = New_Type_Generator()
 
 def dict_grabber(key:str, default:str, *dicts):
