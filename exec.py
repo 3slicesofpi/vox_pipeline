@@ -332,6 +332,30 @@ class CursorHelper():
             color="black", linewidth=1.3
             ) 
 
+    def rotate_pkg(self):
+        if self.focuspkg:
+            length = self.focuspkg.dimLength
+            width = self.focuspkg.dimWidth
+            self.focuspkg.dimLength = width
+            self.focuspkg.dimWidth = length
+            self.focuspkg.update_pos()
+    
+    def pitch_pkg(self):
+        if self.focuspkg:
+            height = self.focuspkg.dimHeight
+            width = self.focuspkg.dimWidth
+            self.focuspkg.dimHeight = width
+            self.focuspkg.dimWidth = height
+            self.focuspkg.update_pos()
+    
+    def yaw_pkg(self):
+        if self.focuspkg:
+            length = self.focuspkg.dimLength
+            height = self.focuspkg.dimHeight
+            self.focuspkg.dimLength = height
+            self.focuspkg.dimHeight = length
+            self.focuspkg.update_pos()
+
     def _update(self):
         for pkg in container.Packages:
             pkg._update_costume("default")
@@ -500,6 +524,12 @@ def mpl_onkey(event):
             save_container()
         case 'alt+t':
             tog_pkg_alpha()
+        case 'r':
+            cur.rotate_pkg()
+        case 't':
+            cur.pitch_pkg()
+        case 'y':
+            cur.yaw_pkg()
 
 fig, ax, toolbar = init_plt(config['visual'])
 cur = CursorHelper()
