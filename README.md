@@ -3,15 +3,29 @@
 (part of) 3D Package Loader System
 Visualiser, Dashboard/Report Generator
 
+## Controls
+
+Move Mouse - Hover(Yellow Borders) and Select(Highlighted in Cyan) 
+R-Click - Drag Selected Package 
+R-Click + Scroll - Drag Selected Package up and down.
+S - Save View
+Alt-S - Save Load and View Report
+C - Check Load Constraints
+
+R - Rotate
+T - Pitch
+Y - Yaw
+
+
 ## Features
 
 - **3D Visualiser**: Interactive 3D visualization tools
 - **Dashboard/Report Generator**: Create and generate comprehensive reports: html, pdf
 - **Free to Use**: Free to download and use. 
-- **Drag and Drop**: Users can freely move their packages to customize load.
+- **Drag and Drop**: Users can freely move(right-click), rotate(R), pitch(T) and yaw(Y) their packages to customize load.
 - **Viewing and Interaction modes**: ✥ Button used to toggle between moving (pan, limited zoom) and interaction (moving packages)
 - **Reset View**: ⌂ Button used to reset view after panning or zooming. 
-- **Constraints Check**: Users can check if current Package Load meets constraints. Program will display warnings if not met. 
+- **Constraints Check**: Users can check if current Package Load meets constraints with C. Program will display warnings if not met. 
 - **Save View**: Users can save the current view with S
 - **Save and Display Load**: Users can save current loading with Alt-S. A Loading Report will also be generated. Save that with Ctrl-P+Enter.
 

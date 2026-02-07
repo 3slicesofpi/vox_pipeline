@@ -167,6 +167,150 @@ class Container():
             json.dump(self._export(), f, indent=2)
         f.close()
 
+    def check_contraints(self):
+        for pkg in self.Packages:
+            pkg.EdgeColors = Package.d_EdgeColors
+        order = [self._check_overlap, self._check_floating, self._check_container_weight, self._check_package_weight, self._check_out_of_bounds]
+        text = "Constraint Check:\n\n"
+
+        for check in order:
+            outcome, line = check()
+            text+=line
+
+        fig, ax = plt.subplots()
+        print("Constraints Text Window. This window is safe to close.")
+        ax.text(
+            0.02, 0.98, 
+            text,
+            ha='left',
+            va='top', 
+            family='monospace',
+            fontsize=12)
+        ax.axis('off')
+        plt.show()
+
+    def _check_overlap(self) -> bool|str:
+        overlaps = []
+        for i, pkg1 in enumerate(self.Packages):
+            for pkg2 in self.Packages[i+1:]:
+                # Check if bounding boxes overlap in all three dimensions
+                if (pkg1.posx < pkg2.posx + pkg2.dimLength and
+                    pkg1.posx + pkg1.dimLength > pkg2.posx and
+                    pkg1.posy < pkg2.posy + pkg2.dimWidth and
+                    pkg1.posy + pkg1.dimWidth > pkg2.posy and
+                    pkg1.posz < pkg2.posz + pkg2.dimHeight and
+                    pkg1.posz + pkg1.dimHeight > pkg2.posz):
+                    overlaps.append(pkg1)
+                    overlaps.append(pkg2)
+        if overlaps:
+            overlapping = set(overlaps)
+            for pkg in overlapping:
+                pkg.EdgeColors = 'r' 
+            return False, f"FAIL: Overlaps: {len(overlaps)}, {len(overlapping)} packages found overlapping.\n"
+        else:
+            return True, "PASS: No overlaps found.\n"
+        
+    def _check_floating(self) -> bool|str:
+        floaters = []
+        for pkg in self.Packages:
+            # Check if package is floating (not supported from below)
+            # Test 4 corners and midpoint of the bottom face
+            test_points = [
+                (pkg.posx, pkg.posy),
+                (pkg.posx + pkg.dimLength, pkg.posy),
+                (pkg.posx + pkg.dimLength, pkg.posy + pkg.dimWidth),
+                (pkg.posx, pkg.posy + pkg.dimWidth),
+                (pkg.posx + pkg.dimLength/2, pkg.posy + pkg.dimWidth/2)  # midpoint
+            ]
+            
+            is_floating = True
+            # Check if package is on the floor or supported by another package
+            if pkg.posz == 0:
+                is_floating = False
+            else:
+                for x, y in test_points:
+                    for other_pkg in self.Packages:
+                        if other_pkg == pkg:
+                            continue
+                        # Check if this point is supported by another package's top surface
+                        if (other_pkg.posx <= x <= other_pkg.posx + other_pkg.dimLength and
+                            other_pkg.posy <= y <= other_pkg.posy + other_pkg.dimWidth and
+                            other_pkg.posz + other_pkg.dimHeight == pkg.posz):
+                            is_floating = False
+                            break
+                    if not is_floating:
+                        break
+                    else:
+                        pkg.EdgeColors = 'r' 
+            
+            if is_floating:
+                floaters.append(pkg)
+                pkg.EdgeColors = 'r'
+
+        if floaters:
+            return False, f"FAIL: Floating: {len(floaters)} package(s) not supported.\n"
+        else:
+            return True, "PASS: No Floating Packages\n"
+
+    def _check_container_weight(self):
+        if self.WeightLimit < 1:
+            return None, "WARN: Container has no WeightLimit set.\n"
+        else:
+            weight = sum([pkg.Weight for pkg in self.Packages if pkg.Weight > 1])
+        if weight > self.WeightLimit:
+            return 0, f"FAIL: Sum Weight of Packages ({weight}) exceeds container limit ({self.WeightLimit})\n"
+        else:
+            return 1, "PASS: Sum Weight of Packages is: "+weight+"\n"
+
+    def _check_package_weight(self):
+        exceeding_packages = []
+        for pkg in self.Packages:
+            if pkg.WeightLimit < 1:
+                continue
+            
+            test_points = [
+                (pkg.posx, pkg.posy),
+                (pkg.posx + pkg.dimLength, pkg.posy),
+                (pkg.posx + pkg.dimLength, pkg.posy + pkg.dimWidth),
+                (pkg.posx, pkg.posy + pkg.dimWidth),
+                (pkg.posx + pkg.dimLength/2, pkg.posy + pkg.dimWidth/2)
+            ]
+            # Test 4 corners and midpoint of the bottom face
+            supporting_packages = {}
+            for x, y in test_points:
+                for other_pkg in self.Packages:
+                    if other_pkg == pkg:
+                        continue
+                    if (other_pkg.posx <= x <= other_pkg.posx + other_pkg.dimLength and
+                        other_pkg.posy <= y <= other_pkg.posy + other_pkg.dimWidth and
+                        other_pkg.posz + other_pkg.dimHeight == pkg.posz):
+                        supporting_packages[other_pkg.Package_ID] = other_pkg
+            
+            if len(supporting_packages) >= 3:
+                total_weight = sum(p.Weight for p in supporting_packages.values())
+                if total_weight > pkg.WeightLimit:
+                    exceeding_packages.append(pkg)
+                    pkg.EdgeColors = 'r'
+
+        if exceeding_packages:
+            return False, f"FAIL: Weight Limit Exceeded: {len(exceeding_packages)} package(s) on supporting packages exceeding their limits.\n"
+        else:
+            return True, "PASS: All package weight limits respected.\n"
+
+    def _check_out_of_bounds(self):
+        out_of_bounds = []
+        for pkg in self.Packages:
+            if (pkg.posx < 0 or pkg.posx + pkg.dimLength > self.dimLength or
+                pkg.posy < 0 or pkg.posy + pkg.dimWidth > self.dimWidth or
+                pkg.posz < 0 or pkg.posz + pkg.dimHeight > self.dimHeight):
+                out_of_bounds.append(pkg)
+                pkg.EdgeColors = 'r'
+
+        if out_of_bounds:
+            return False, f"FAIL: Out of Bounds: {len(out_of_bounds)} package(s) outside container.\n"
+        else:
+            return True, "PASS: All packages within container bounds.\n"
+        
 class Package():
     _C_FACES = CUBE_FACES
     d_Weight = 0.0  # default Weight
@@ -530,6 +674,8 @@ def mpl_onkey(event):
             cur.pitch_pkg()
         case 'y':
             cur.yaw_pkg()
+        case 'c':
+            container.check_contraints()
 
 fig, ax, toolbar = init_plt(config['visual'])
 cur = CursorHelper()
