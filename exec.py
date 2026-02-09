@@ -260,7 +260,7 @@ class Container():
         if weight > self.WeightLimit:
             return 0, f"FAIL: Sum Weight of Packages ({weight}) exceeds container limit ({self.WeightLimit})\n"
         else:
-            return 1, "PASS: Sum Weight of Packages is: "+weight+"\n"
+            return 1, f"PASS: Sum Weight of Packages is: {weight}\n"
 
     def _check_package_weight(self):
         exceeding_packages = []
@@ -590,12 +590,12 @@ class CursorHelper():
             case "focus":
                 if event.button == 'up' and self.posz + 0.1 <= container.dimHeight - self.focuspkg.dimHeight:
                     self.posz += 0.1; self.focuspkg._moveTo(posz=self.posz)
-                    self.focuspkg.update_pos()
-                    self._update(); return
+                elif event.button == 'down' and self.posz <= 0.01:
+                    self.posz = 0; self.focuspkg._moveTo(posz=0)
                 elif event.button == 'down' and self.posz - 0.1 >= 0:
                     self.posz -= 0.1; self.focuspkg._moveTo(posz=self.posz)
-                    self.focuspkg.update_pos()
-                    self._update(); return
+                self.focuspkg.update_pos()
+                self._update(); return
 
 def save_container():
     print("Info: Saving new manifest...")
