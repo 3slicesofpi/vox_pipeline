@@ -590,7 +590,7 @@ class CursorHelper():
             case "focus":
                 if event.button == 'up' and self.posz + 0.1 <= container.dimHeight - self.focuspkg.dimHeight:
                     self.posz += 0.1; self.focuspkg._moveTo(posz=self.posz)
-                elif event.button == 'down' and self.posz <= 0.01:
+                elif event.button == 'up' and self.posz <= 0.01:
                     self.posz = 0; self.focuspkg._moveTo(posz=0)
                 elif event.button == 'down' and self.posz - 0.1 >= 0:
                     self.posz -= 0.1; self.focuspkg._moveTo(posz=self.posz)
