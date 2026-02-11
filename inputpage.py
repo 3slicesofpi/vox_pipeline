@@ -10,8 +10,7 @@ import streamlit as st
 
 def build_manifest(container_id: int, L: float, W: float, H: float, packages: list[dict]) -> dict:
     """
-    Build manifest.json EXACTLY like your visualiser expects.
-    Matches keys and structure from your uploaded manifest.json.
+    Build manifest.json in the schema your visualiser expects.
     """
     return {
         "Container_ID": int(container_id),
@@ -36,7 +35,7 @@ def validate_packages(packages: list[dict], container_dims: dict, payload_limit:
     oversized = 0
 
     for p in packages:
-        total_weight += float(p["Weight"])
+        total_weight += float(p.get("Weight", 0.0))
         L = float(p["Dimensions"]["Length"])
         W = float(p["Dimensions"]["Width"])
         H = float(p["Dimensions"]["Height"])
@@ -54,6 +53,7 @@ def stack_positions(packages_raw: list[dict], z_start: float = 0.15, max_height:
     - All packages at x=0, y=0
     - z increases by package height (stacking vertically)
     This makes the output immediately visualisable.
+    IMPORTANT: This is placeholder only; your optimizer will overwrite positions later.
     """
     z_cursor = z_start
     packages = []
@@ -61,11 +61,12 @@ def stack_positions(packages_raw: list[dict], z_start: float = 0.15, max_height:
     for p in packages_raw:
         H = float(p["Dimensions"]["Height"])
         if max_height is not None and (z_cursor + H) > max_height:
-            # if stacking exceeds container height, keep it but warn later
+            # keep it but warn later
             pass
 
-        packages.append({
+        out = {
             "Package_ID": int(p["Package_ID"]),
+            "Package_Type": str(p["Package_Type"]).strip(),  # ✅ KEEP Package_Type (required by optimizer)
             "Dimensions": {
                 "Length": float(p["Dimensions"]["Length"]),
                 "Width": float(p["Dimensions"]["Width"]),
@@ -77,46 +78,64 @@ def stack_positions(packages_raw: list[dict], z_start: float = 0.15, max_height:
                 "y": 0.0,
                 "z": float(z_cursor)
             }
-        })
+        }
+        packages.append(out)
         z_cursor += H
 
     return packages
 
 
-def explode_qty_from_csv(df: pd.DataFrame) -> list[dict]:
+def explode_qty_from_csv(df: pd.DataFrame, pallet_type_name: str | None = None) -> tuple[list[dict], int]:
     """
-    CSV columns supported (case-insensitive):
-      package_id, package_type, length, width, height, weight, qty
-    Returns a list (without positions), one entry per unit.
+    CSV columns required (case-insensitive):
+      package_id, package_type, weight, length, width, height, qty
+
+    Returns:
+      (packages_raw, pallet_qty_in_csv)
+
+    - packages_raw: list of NON-pallet cargo items (one per unit, Qty expanded)
+    - pallet_qty_in_csv: number of pallets detected in CSV (if pallet_type_name provided)
+
+    Also ensures every expanded unit gets a UNIQUE Package_ID.
     """
     df = df.copy()
     df.columns = [c.strip().lower() for c in df.columns]
 
-    required = {"package_id", "length", "width", "height", "weight", "qty"}
+    required = {"package_id", "package_type", "weight", "length", "width", "height", "qty"}
     missing = required - set(df.columns)
     if missing:
         raise ValueError(f"CSV missing columns: {sorted(list(missing))}")
 
-    has_type = "package_type" in df.columns
+    packages_raw: list[dict] = []
+    pallet_qty = 0
 
-    items = []
+    # UNIQUE Package_ID counter for expanded units (avoid repeated IDs in manifest)
+    uid = 1
+
     for _, row in df.iterrows():
+        ptype = str(row["package_type"]).strip()
         qty = int(row["qty"])
+
+        # If this row is pallets, count them but do NOT add to cargo list
+        if pallet_type_name and ptype == pallet_type_name:
+            pallet_qty += qty
+            continue
+
         for _ in range(qty):
-            item = {
-                "Package_ID": int(row["package_id"]),
+            packages_raw.append({
+                "Package_ID": uid,
+                "Package_Type": ptype,
                 "Dimensions": {
                     "Length": float(row["length"]),
                     "Width": float(row["width"]),
-                    "Height": float(row["height"]),
+                    "Height": float(row["height"])
                 },
                 "Weight": float(row["weight"]),
-            }
-            if has_type and pd.notna(row["package_type"]):
-                item["Package_Type"] = str(row["package_type"]).strip()
-            items.append(item)
+            })
+            uid += 1
 
-    return items
+    return packages_raw, pallet_qty
+
 
 def upsert_typedata_container(typedata_container: dict, container_type: str,
                              L: float, W: float, H: float,
@@ -126,7 +145,7 @@ def upsert_typedata_container(typedata_container: dict, container_type: str,
     typedata_container.json format (friend-provided):
       {
         "<key>": {
-           "Container_Type": "<same or different>",
+           "Container_Type": "<same>",
            "Dimensions": {"Length":..., "Width":..., "Height":...},
            "DimensionBuffer": {...} (optional),
            "Weight": <tare>,
@@ -134,7 +153,6 @@ def upsert_typedata_container(typedata_container: dict, container_type: str,
         },
         ...
       }
-    We'll use key == Container_Type for consistency.
     """
     entry = {
         "Container_Type": container_type,
@@ -154,9 +172,8 @@ def upsert_typedata_package(typedata_package: dict, package_type: str,
                             weight: float, color: str,
                             weight_limit: float | None) -> dict:
     """
-    typedata_package.json format (friend-provided) AND your rule:
+    typedata_package.json format (friend-provided):
       - dictionary key MUST equal Package_Type.
-
       {
         "<Package_Type>": {
            "Package_Type": "<Package_Type>",
@@ -181,22 +198,23 @@ def upsert_typedata_package(typedata_package: dict, package_type: str,
     return typedata_package
 
 
-def infer_types_from_packages(packages_raw: list[dict], prefix: str = "PKG_", default_color: str = "Brown") -> dict:
+def infer_types_from_packages(packages_raw: list[dict], default_color: str = "Brown") -> dict:
     """
     Build typedata_package entries from current packages list.
-    Each unique Package_ID becomes a Package_Type = f"{prefix}{id}".
+    Each unique Package_Type becomes a typedata entry.
     Enforces key == Package_Type.
     """
     typed = {}
     seen = set()
+
     for p in packages_raw:
-        pid = int(p["Package_ID"])
-        if pid in seen:
+        ptype = str(p["Package_Type"]).strip()
+        if ptype in seen:
             continue
-        seen.add(pid)
-        pkg_type = f"{prefix}{pid}"
-        typed[pkg_type] = {
-            "Package_Type": pkg_type,
+        seen.add(ptype)
+
+        typed[ptype] = {
+            "Package_Type": ptype,
             "Dimensions": {
                 "Length": float(p["Dimensions"]["Length"]),
                 "Width": float(p["Dimensions"]["Width"]),
@@ -205,6 +223,7 @@ def infer_types_from_packages(packages_raw: list[dict], prefix: str = "PKG_", de
             "Weight": float(p["Weight"]),
             "Color": default_color
         }
+
     return typed
 
 
@@ -213,9 +232,8 @@ def infer_types_from_packages(packages_raw: list[dict], prefix: str = "PKG_", de
 # ---------------------------
 
 st.set_page_config(page_title="Input → Manifest Generator", layout="wide")
-st.title("📦 Smart Container Loading — Input Page ")
-
-# st.caption("This generates a manifest.json in the EXACT schema your visualiser already reads.")
+st.title("📦 Smart Container Loading — Input Page (Generates manifest.json)")
+st.caption("This generates a manifest.json in the schema your visualiser reads. (Optimizer will create real positions later.)")
 
 output_dir = Path("output")
 output_dir.mkdir(exist_ok=True)
@@ -227,7 +245,7 @@ if "typedata_container" not in st.session_state:
 if "typedata_package" not in st.session_state:
     st.session_state.typedata_package = {}
 
-# Default container presets (based on your project docs, but you can override in UI)
+# Default container presets (you can override in UI)
 presets = {
     "40ft High Cube (sample)": {"L": 12.0, "W": 2.3, "H": 2.45},
     "20ft (sample)": {"L": 5.9, "W": 2.35, "H": 2.39},
@@ -257,17 +275,17 @@ with colB:
     payload_limit = st.number_input("Payload limit (kg) (optional)", min_value=0.0, value=0.0, step=10.0)
     pallet_max_weight = st.number_input("Max weight per pallet (kg) (optional)", min_value=0.0, value=0.0, step=10.0)
 
-    st.markdown("*Stacking rule by weight (optional):*")
+    st.markdown("**Stacking rule by weight (optional):**")
     heavy_threshold = st.number_input("Heavy threshold (kg)", min_value=0.0, value=100.0, step=1.0)
     heavy_max_layers = st.number_input("Max layers for heavy items", min_value=1, value=3, step=1)
 
-    st.markdown("*Placeholder positioning:*")
+    st.markdown("**Placeholder positioning (for input manifest only):**")
     z_start = st.number_input("Start z (m)", min_value=0.0, value=0.15, step=0.01)
 
 st.divider()
 
 # ---------------------------
-# NEW: typedata_container controls (friend json)
+# Container type catalog (typedata_container.json)
 # ---------------------------
 st.subheader("🧱 Container Type Catalog (typedata_container.json)")
 
@@ -305,7 +323,7 @@ st.json(st.session_state.typedata_container)
 st.divider()
 
 # ---------------------------
-# NEW: Pallet type (typedata_package) + your rule key==Package_Type
+# Pallet type (typedata_package.json)
 # ---------------------------
 st.subheader("🟧 Pallet Type (typedata_package.json)")
 
@@ -330,7 +348,7 @@ with pl3:
 if st.button("✅ Save/Update pallet into typedata_package"):
     st.session_state.typedata_package = upsert_typedata_package(
         st.session_state.typedata_package,
-        package_type=pallet_type_name,  # key == Package_Type enforced
+        package_type=pallet_type_name,
         L=pallet_L, W=pallet_W, H=pallet_H,
         weight=pallet_weight,
         color=pallet_color,
@@ -340,14 +358,19 @@ if st.button("✅ Save/Update pallet into typedata_package"):
 
 st.divider()
 
+# ---------------------------
+# Package input
+# ---------------------------
 st.subheader("3) Input Packages: CSV Upload OR Manual Entry")
+st.caption("IMPORTANT: Pallet rows in CSV (Package_Type == pallet type) will be detected and EXCLUDED from cargo list.")
 
 tab1, tab2 = st.tabs(["📄 Upload CSV", "✍️ Manual Entry"])
 
 packages_raw: list[dict] = []
+pallets_in_csv = 0
 
 with tab1:
-    st.write("CSV columns required: package_id, length, width, height, weight, qty")
+    st.write("CSV columns required: `package_id, package_type, weight, length, width, height, qty`")
     uploaded = st.file_uploader("Upload CSV", type=["csv"])
 
     if uploaded:
@@ -356,8 +379,13 @@ with tab1:
         st.dataframe(df)
 
         try:
-            packages_raw = explode_qty_from_csv(df)
-            st.success(f"Loaded {len(packages_raw)} packages from CSV (qty expanded).")
+            packages_raw, pallets_in_csv = explode_qty_from_csv(df, pallet_type_name=pallet_type_name)
+            st.success(f"Loaded {len(packages_raw)} cargo packages from CSV (qty expanded).")
+            if pallets_in_csv > 0:
+                st.info(
+                    f"Detected {pallets_in_csv} pallet(s) in CSV (Package_Type='{pallet_type_name}'). "
+                    f"Excluded from cargo list so pallets act as base platforms in optimizer."
+                )
         except Exception as e:
             st.error(str(e))
 
@@ -368,7 +396,7 @@ with tab2:
     with st.form("manual_form"):
         c1, c2, c3 = st.columns(3)
         with c1:
-            pid = st.number_input("Package_ID", min_value=0, value=1, step=1)
+            ptype = st.text_input("Package_Type", value="Medium Carton Box - Standard Packing Size")
             pweight = st.number_input("Weight (kg)", min_value=0.0, value=10.0, step=0.1)
         with c2:
             pl = st.number_input("Length (m)", min_value=0.01, value=0.4, step=0.01)
@@ -380,17 +408,21 @@ with tab2:
         add_btn = st.form_submit_button("Add to list")
 
     if add_btn:
+        # Unique IDs for manual list too
+        next_id = (max([p["Package_ID"] for p in st.session_state.manual_list]) + 1) if st.session_state.manual_list else 1
         for _ in range(int(qty)):
             st.session_state.manual_list.append({
-                "Package_ID": int(pid),
+                "Package_ID": int(next_id),
+                "Package_Type": str(ptype).strip(),
                 "Dimensions": {"Length": float(pl), "Width": float(pw), "Height": float(ph)},
                 "Weight": float(pweight),
             })
+            next_id += 1
         st.success(f"Added {int(qty)} package(s). Total manual: {len(st.session_state.manual_list)}")
 
     if st.session_state.manual_list:
-        st.write("Manual packages (first 20 shown):")
-        st.dataframe(pd.DataFrame(st.session_state.manual_list).head(20))
+        st.write("Manual packages (first 50 shown):")
+        st.dataframe(pd.DataFrame(st.session_state.manual_list).head(50))
 
         if st.button("Clear manual list"):
             st.session_state.manual_list = []
@@ -403,48 +435,45 @@ with tab2:
 st.divider()
 
 # ---------------------------
-# NEW: typedata_package generator (from Package_IDs) with key==Package_Type
+# Auto-generate typedata_package for cargo types (from Package_Type)
 # ---------------------------
 st.subheader("🧩 Package Type Catalog (typedata_package.json)")
-st.caption("Auto-create package types from the packages list. Keys will be Package_Type = prefix + Package_ID.")
+st.caption("Auto-create/Update typedata_package entries from the current cargo packages list (key == Package_Type).")
 
-tcol1, tcol2, tcol3 = st.columns(3)
+tcol1, tcol2 = st.columns(2)
 with tcol1:
-    type_prefix = st.text_input("Package_Type prefix", value="PKG_")
+    default_color = st.text_input("Default Color for auto types", value="Brown")
 with tcol2:
-    default_color = st.text_input("Default Color", value="Brown")
-with tcol3:
     include_weight_limit = st.checkbox("Include WeightLimit for auto types?", value=False)
 
 auto_wlimit = None
 if include_weight_limit:
     auto_wlimit = st.number_input("Auto WeightLimit value (kg)", min_value=0.0, value=0.0, step=1.0)
 
-if st.button("⚡ Generate/Update typedata_package from packages list"):
+if st.button("⚡ Generate/Update typedata_package from cargo packages list"):
     if not packages_raw:
-        st.warning("No packages loaded yet.")
+        st.warning("No cargo packages loaded yet.")
     else:
-        auto_types = infer_types_from_packages(packages_raw, prefix=type_prefix, default_color=default_color)
+        auto_types = infer_types_from_packages(packages_raw, default_color=default_color)
 
-        # merge into session typedata_package (and optionally include weightlimit)
         for k, v in auto_types.items():
             if auto_wlimit is not None:
                 v["WeightLimit"] = float(auto_wlimit)
             st.session_state.typedata_package[k] = v
 
-        st.success(f"Generated/updated {len(auto_types)} package types. (key == Package_Type ✅)")
+        st.success(f"Generated/updated {len(auto_types)} cargo Package_Type entries. (key == Package_Type ✅)")
 
 st.json(st.session_state.typedata_package)
 
 st.divider()
 
 # ---------------------------
-# Apply rules (simple) + manifest generation
+# Generate manifest.json (for optimizer to consume)
 # ---------------------------
-
 if packages_raw:
     heavy_count = sum(1 for p in packages_raw if float(p["Weight"]) >= float(heavy_threshold))
 
+    # Placeholder positions only (optimizer will overwrite)
     packages_ready = stack_positions(packages_raw, z_start=float(z_start), max_height=float(H))
 
     manifest = build_manifest(container_id=int(container_id), L=float(L), W=float(W), H=float(H), packages=packages_ready)
@@ -455,16 +484,17 @@ if packages_raw:
         payload_limit if payload_limit > 0 else None
     )
 
-    st.subheader("4) Summary & Generate manifest.json")
-    st.write(f"*Packages loaded:* {len(packages_ready)}")
-    st.write(f"*Heavy items (≥ {heavy_threshold} kg):* {heavy_count}")
-    st.write(f"*Total weight:* {total_weight:.2f} kg")
+    st.subheader("4) Summary & Generate manifest.json (for optimizer)")
+    st.write(f"**Cargo packages loaded:** {len(packages_ready)}")
+    st.write(f"**Pallets detected in CSV (excluded from cargo):** {pallets_in_csv}")
+    st.write(f"**Heavy items (≥ {heavy_threshold} kg):** {heavy_count}")
+    st.write(f"**Total cargo weight:** {total_weight:.2f} kg")
 
     if payload_limit > 0 and total_weight > payload_limit:
-        st.warning("Total weight exceeds payload limit — you should split load or reject in optimiser.")
+        st.warning("Total cargo weight exceeds payload limit — you should split load or reject in optimiser.")
 
     if oversized > 0:
-        st.warning(f"{oversized} package(s) exceed container dimensions (simple check).")
+        st.warning(f"{oversized} cargo package(s) exceed container dimensions (simple check).")
 
     if st.button("✅ Generate output/manifest.json"):
         outpath = output_dir / "manifest.json"
@@ -472,14 +502,13 @@ if packages_raw:
         st.success(f"Saved: {outpath.resolve()}")
 
     st.code(json.dumps(manifest, indent=2), language="json")
-
 else:
     st.info("Upload a CSV or add manual packages to generate the manifest.")
 
 st.divider()
 
 # ---------------------------
-# NEW: Save typedata files
+# Save typedata files
 # ---------------------------
 st.subheader("💾 Save JSON files (typedata_container.json + typedata_package.json)")
 
@@ -496,4 +525,4 @@ with s2:
         outpath.write_text(json.dumps(st.session_state.typedata_package, indent=4))
         st.success(f"Saved: {outpath.resolve()}")
 
-st.caption("✅ Rule enforced: typedata_package dictionary key == Package_Type.")
+st.caption("✅ Rule enforced: typedata_package dictionary key == Package_Type. Pallet rows in CSV are excluded from cargo manifest.")
