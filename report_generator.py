@@ -12,7 +12,7 @@ import webbrowser
 # 1. DATA
 # ------------------------------------------------------------------
 
-with open('export.json', 'r') as f:
+with open('output/export.json', 'r') as f:
     context:dict[dict] = json.load(f)
 
 images = [

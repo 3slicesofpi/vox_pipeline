@@ -7,13 +7,13 @@ from mpl_toolkits.mplot3d import proj3d
 
 import json
 
-with open('manifest.json', 'r') as f:
+with open('output/manifest_optimized.json', 'r') as f:
     manifest = json.load(f) 
 with open('setup/config.json', 'r') as f:
     config = json.load(f)
-with open('setup/typedata_container.json', 'r') as f:
+with open('output/typedata_container.json', 'r') as f:
     td_con:dict[dict] = json.load(f)
-with open('setup/typedata_package.json', 'r') as f:
+with open('output/typedata_package.json', 'r') as f:
     td_pkg:dict[dict] = json.load(f)
 
 ALLOWED_CONTAINERS_COUNT = 1
@@ -162,7 +162,7 @@ class Container():
         return slate
 
     
-    def export_tofile(self, filename:str="export.json"):
+    def export_tofile(self, filename:str="output\export.json"):
         with open(filename, 'w') as f:
             json.dump(self._export(), f, indent=2)
         f.close()

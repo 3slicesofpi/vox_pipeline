@@ -1,0 +1,154 @@
+{
+  "Container_ID": 1,
+  "Dimensions": {
+    "Length": 5.9,
+    "Width": 2.35,
+    "Height": 2.39
+  },
+  "Packages": [
+    {
+      "Package_ID": 900000,
+      "Package_Type": "Loscam Wooden Pallet - Asia",
+      "Position": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0
+      }
+    },
+    {
+      "Package_ID": 2,
+      "Package_Type": "PKG_2",
+      "Dimensions": {
+        "Length": 0.8,
+        "Width": 0.6,
+        "Height": 0.6
+      },
+      "Weight": 2.5,
+      "Position": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.156
+      }
+    },
+    {
+      "Package_ID": 1,
+      "Package_Type": "PKG_1",
+      "Dimensions": {
+        "Length": 0.6,
+        "Width": 0.48,
+        "Height": 0.42
+      },
+      "Weight": 1.7,
+      "Position": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.756
+      }
+    },
+    {
+      "Package_ID": 1,
+      "Package_Type": "PKG_1",
+      "Dimensions": {
+        "Length": 0.6,
+        "Width": 0.48,
+        "Height": 0.42
+      },
+      "Weight": 1.7,
+      "Position": {
+        "x": 0.6,
+        "y": 0.0,
+        "z": 0.756
+      }
+    },
+    {
+      "Package_ID": 3,
+      "Package_Type": "PKG_3",
+      "Dimensions": {
+        "Length": 0.5,
+        "Width": 0.4,
+        "Height": 0.35
+      },
+      "Weight": 1.2,
+      "Position": {
+        "x": 0.0,
+        "y": 0.48,
+        "z": 0.756
+      }
+    },
+    {
+      "Package_ID": 3,
+      "Package_Type": "PKG_3",
+      "Dimensions": {
+        "Length": 0.5,
+        "Width": 0.4,
+        "Height": 0.35
+      },
+      "Weight": 1.2,
+      "Position": {
+        "x": 0.5,
+        "y": 0.48,
+        "z": 0.756
+      }
+    },
+    {
+      "Package_ID": 3,
+      "Package_Type": "PKG_3",
+      "Dimensions": {
+        "Length": 0.5,
+        "Width": 0.4,
+        "Height": 0.35
+      },
+      "Weight": 1.2,
+      "Position": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 1.176
+      }
+    },
+    {
+      "Package_ID": 3,
+      "Package_Type": "PKG_3",
+      "Dimensions": {
+        "Length": 0.5,
+        "Width": 0.4,
+        "Height": 0.35
+      },
+      "Weight": 1.2,
+      "Position": {
+        "x": 0.5,
+        "y": 0.0,
+        "z": 1.176
+      }
+    },
+    {
+      "Package_ID": 3,
+      "Package_Type": "PKG_3",
+      "Dimensions": {
+        "Length": 0.5,
+        "Width": 0.4,
+        "Height": 0.35
+      },
+      "Weight": 1.2,
+      "Position": {
+        "x": 0.0,
+        "y": 0.4,
+        "z": 1.176
+      }
+    },
+    {
+      "Package_ID": 3,
+      "Package_Type": "PKG_3",
+      "Dimensions": {
+        "Length": 0.5,
+        "Width": 0.4,
+        "Height": 0.35
+      },
+      "Weight": 1.2,
+      "Position": {
+        "x": 0.5,
+        "y": 0.4,
+        "z": 1.176
+      }
+    }
+  ]
+}

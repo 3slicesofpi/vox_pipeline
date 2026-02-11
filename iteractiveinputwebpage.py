@@ -85,35 +85,38 @@ def stack_positions(packages_raw: list[dict], z_start: float = 0.15, max_height:
 
 def explode_qty_from_csv(df: pd.DataFrame) -> list[dict]:
     """
-    CSV columns expected:
-      package_id, length, width, height, weight, qty
-    Returns a raw list (without positions), one entry per unit.
+    CSV columns supported (case-insensitive):
+      package_id, package_type, length, width, height, weight, qty
+    Returns a list (without positions), one entry per unit.
     """
-    required = {"package_id", "length", "width", "height", "weight", "qty"}
-    missing = required - set(df.columns.str.lower())
+    df = df.copy()
+    df.columns = [c.strip().lower() for c in df.columns]
 
+    required = {"package_id", "length", "width", "height", "weight", "qty"}
+    missing = required - set(df.columns)
     if missing:
         raise ValueError(f"CSV missing columns: {sorted(list(missing))}")
 
-    # normalize column names
-    df = df.copy()
-    df.columns = [c.lower() for c in df.columns]
+    has_type = "package_type" in df.columns
 
     items = []
     for _, row in df.iterrows():
         qty = int(row["qty"])
         for _ in range(qty):
-            items.append({
+            item = {
                 "Package_ID": int(row["package_id"]),
                 "Dimensions": {
                     "Length": float(row["length"]),
                     "Width": float(row["width"]),
-                    "Height": float(row["height"])
+                    "Height": float(row["height"]),
                 },
                 "Weight": float(row["weight"]),
-            })
-    return items
+            }
+            if has_type and pd.notna(row["package_type"]):
+                item["Package_Type"] = str(row["package_type"]).strip()
+            items.append(item)
 
+    return items
 
 def upsert_typedata_container(typedata_container: dict, container_type: str,
                              L: float, W: float, H: float,

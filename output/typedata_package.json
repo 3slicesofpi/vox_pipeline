@@ -1,0 +1,43 @@
+{
+    "PKG_1": {
+        "Package_Type": "PKG_1",
+        "Dimensions": {
+            "Length": 0.6,
+            "Width": 0.48,
+            "Height": 0.42
+        },
+        "Weight": 1.7,
+        "Color": "Green"
+    },
+    "PKG_2": {
+        "Package_Type": "PKG_2",
+        "Dimensions": {
+            "Length": 0.8,
+            "Width": 0.6,
+            "Height": 0.6
+        },
+        "Weight": 2.5,
+        "Color": "Green"
+    },
+    "PKG_3": {
+        "Package_Type": "PKG_3",
+        "Dimensions": {
+            "Length": 0.5,
+            "Width": 0.4,
+            "Height": 0.35
+        },
+        "Weight": 1.2,
+        "Color": "Green"
+    },
+    "Loscam Wooden Pallet - Asia": {
+        "Package_Type": "Loscam Wooden Pallet - Asia",
+        "Dimensions": {
+            "Length": 1.2,
+            "Width": 1.0,
+            "Height": 0.156
+        },
+        "Weight": 28.0,
+        "Color": "Orange",
+        "WeightLimit": 1000.0
+    }
+}
