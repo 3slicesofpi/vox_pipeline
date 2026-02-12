@@ -9,15 +9,20 @@
     {
       "Package_ID": 900000,
       "Package_Type": "Loscam Wooden Pallet - Asia",
+      "Dimensions": {
+        "Length": 1.2,
+        "Width": 1.0,
+        "Height": 0.156
+      },
       "Position": {
-        "x": 0.0,
-        "y": 0.0,
-        "z": 0
+        "x": 1.13,
+        "y": 0.165,
+        "z": 0.0
       }
     },
     {
-      "Package_ID": 2,
-      "Package_Type": "PKG_2",
+      "Package_ID": 1,
+      "Package_Type": "Extra-Large Carton Box - Bulk Pallet Size",
       "Dimensions": {
         "Length": 0.8,
         "Width": 0.6,
@@ -25,14 +30,44 @@
       },
       "Weight": 2.5,
       "Position": {
-        "x": 0.0,
-        "y": 0.0,
+        "x": 1.13,
+        "y": 0.165,
         "z": 0.156
       }
     },
     {
-      "Package_ID": 1,
-      "Package_Type": "PKG_1",
+      "Package_ID": 2,
+      "Package_Type": "Extra-Large Carton Box - Bulk Pallet Size",
+      "Dimensions": {
+        "Length": 0.8,
+        "Width": 0.6,
+        "Height": 0.6
+      },
+      "Weight": 2.5,
+      "Position": {
+        "x": 1.13,
+        "y": 0.165,
+        "z": 0.756
+      }
+    },
+    {
+      "Package_ID": 3,
+      "Package_Type": "Extra-Large Carton Box - Bulk Pallet Size",
+      "Dimensions": {
+        "Length": 0.8,
+        "Width": 0.6,
+        "Height": 0.6
+      },
+      "Weight": 2.5,
+      "Position": {
+        "x": 1.13,
+        "y": 0.165,
+        "z": 1.356
+      }
+    },
+    {
+      "Package_ID": 33,
+      "Package_Type": "Large Carton Box - Industrial Packing Size",
       "Dimensions": {
         "Length": 0.6,
         "Width": 0.48,
@@ -40,14 +75,253 @@
       },
       "Weight": 1.7,
       "Position": {
-        "x": 0.0,
-        "y": 0.0,
+        "x": 1.13,
+        "y": 0.165,
+        "z": 1.956
+      }
+    },
+    {
+      "Package_ID": 17,
+      "Package_Type": "Medium Carton Box - Standard Packing Size",
+      "Dimensions": {
+        "Length": 0.5,
+        "Width": 0.4,
+        "Height": 0.35
+      },
+      "Weight": 1.2,
+      "Position": {
+        "x": 1.13,
+        "y": 0.765,
+        "z": 0.156
+      }
+    },
+    {
+      "Package_ID": 18,
+      "Package_Type": "Medium Carton Box - Standard Packing Size",
+      "Dimensions": {
+        "Length": 0.5,
+        "Width": 0.4,
+        "Height": 0.35
+      },
+      "Weight": 1.2,
+      "Position": {
+        "x": 1.63,
+        "y": 0.765,
+        "z": 0.156
+      }
+    },
+    {
+      "Package_ID": 19,
+      "Package_Type": "Medium Carton Box - Standard Packing Size",
+      "Dimensions": {
+        "Length": 0.5,
+        "Width": 0.4,
+        "Height": 0.35
+      },
+      "Weight": 1.2,
+      "Position": {
+        "x": 1.13,
+        "y": 0.765,
+        "z": 0.506
+      }
+    },
+    {
+      "Package_ID": 20,
+      "Package_Type": "Medium Carton Box - Standard Packing Size",
+      "Dimensions": {
+        "Length": 0.5,
+        "Width": 0.4,
+        "Height": 0.35
+      },
+      "Weight": 1.2,
+      "Position": {
+        "x": 1.63,
+        "y": 0.765,
+        "z": 0.506
+      }
+    },
+    {
+      "Package_ID": 21,
+      "Package_Type": "Medium Carton Box - Standard Packing Size",
+      "Dimensions": {
+        "Length": 0.5,
+        "Width": 0.4,
+        "Height": 0.35
+      },
+      "Weight": 1.2,
+      "Position": {
+        "x": 1.63,
+        "y": 0.765,
+        "z": 0.856
+      }
+    },
+    {
+      "Package_ID": 22,
+      "Package_Type": "Medium Carton Box - Standard Packing Size",
+      "Dimensions": {
+        "Length": 0.5,
+        "Width": 0.4,
+        "Height": 0.35
+      },
+      "Weight": 1.2,
+      "Position": {
+        "x": 1.13,
+        "y": 0.765,
+        "z": 0.856
+      }
+    },
+    {
+      "Package_ID": 23,
+      "Package_Type": "Medium Carton Box - Standard Packing Size",
+      "Dimensions": {
+        "Length": 0.5,
+        "Width": 0.4,
+        "Height": 0.35
+      },
+      "Weight": 1.2,
+      "Position": {
+        "x": 1.13,
+        "y": 0.765,
+        "z": 1.206
+      }
+    },
+    {
+      "Package_ID": 24,
+      "Package_Type": "Medium Carton Box - Standard Packing Size",
+      "Dimensions": {
+        "Length": 0.5,
+        "Width": 0.4,
+        "Height": 0.35
+      },
+      "Weight": 1.2,
+      "Position": {
+        "x": 1.63,
+        "y": 0.765,
+        "z": 1.206
+      }
+    },
+    {
+      "Package_ID": 25,
+      "Package_Type": "Medium Carton Box - Standard Packing Size",
+      "Dimensions": {
+        "Length": 0.5,
+        "Width": 0.4,
+        "Height": 0.35
+      },
+      "Weight": 1.2,
+      "Position": {
+        "x": 1.63,
+        "y": 0.765,
+        "z": 1.556
+      }
+    },
+    {
+      "Package_ID": 26,
+      "Package_Type": "Medium Carton Box - Standard Packing Size",
+      "Dimensions": {
+        "Length": 0.5,
+        "Width": 0.4,
+        "Height": 0.35
+      },
+      "Weight": 1.2,
+      "Position": {
+        "x": 1.13,
+        "y": 0.765,
+        "z": 1.556
+      }
+    },
+    {
+      "Package_ID": 27,
+      "Package_Type": "Medium Carton Box - Standard Packing Size",
+      "Dimensions": {
+        "Length": 0.5,
+        "Width": 0.4,
+        "Height": 0.35
+      },
+      "Weight": 1.2,
+      "Position": {
+        "x": 1.13,
+        "y": 0.765,
+        "z": 1.906
+      }
+    },
+    {
+      "Package_ID": 28,
+      "Package_Type": "Medium Carton Box - Standard Packing Size",
+      "Dimensions": {
+        "Length": 0.5,
+        "Width": 0.4,
+        "Height": 0.35
+      },
+      "Weight": 1.2,
+      "Position": {
+        "x": 1.63,
+        "y": 0.765,
+        "z": 1.906
+      }
+    },
+    {
+      "Package_ID": 900001,
+      "Package_Type": "Loscam Wooden Pallet - Asia",
+      "Dimensions": {
+        "Length": 1.2,
+        "Width": 1.0,
+        "Height": 0.156
+      },
+      "Position": {
+        "x": 2.35,
+        "y": 0.165,
+        "z": 0.0
+      }
+    },
+    {
+      "Package_ID": 4,
+      "Package_Type": "Extra-Large Carton Box - Bulk Pallet Size",
+      "Dimensions": {
+        "Length": 0.8,
+        "Width": 0.6,
+        "Height": 0.6
+      },
+      "Weight": 2.5,
+      "Position": {
+        "x": 2.35,
+        "y": 0.165,
+        "z": 0.156
+      }
+    },
+    {
+      "Package_ID": 5,
+      "Package_Type": "Extra-Large Carton Box - Bulk Pallet Size",
+      "Dimensions": {
+        "Length": 0.8,
+        "Width": 0.6,
+        "Height": 0.6
+      },
+      "Weight": 2.5,
+      "Position": {
+        "x": 2.35,
+        "y": 0.165,
         "z": 0.756
       }
     },
     {
-      "Package_ID": 1,
-      "Package_Type": "PKG_1",
+      "Package_ID": 6,
+      "Package_Type": "Extra-Large Carton Box - Bulk Pallet Size",
+      "Dimensions": {
+        "Length": 0.8,
+        "Width": 0.6,
+        "Height": 0.6
+      },
+      "Weight": 2.5,
+      "Position": {
+        "x": 2.35,
+        "y": 0.165,
+        "z": 1.356
+      }
+    },
+    {
+      "Package_ID": 34,
+      "Package_Type": "Large Carton Box - Industrial Packing Size",
       "Dimensions": {
         "Length": 0.6,
         "Width": 0.48,
@@ -55,99 +329,320 @@
       },
       "Weight": 1.7,
       "Position": {
-        "x": 0.6,
-        "y": 0.0,
+        "x": 2.35,
+        "y": 0.165,
+        "z": 1.956
+      }
+    },
+    {
+      "Package_ID": 29,
+      "Package_Type": "Medium Carton Box - Standard Packing Size",
+      "Dimensions": {
+        "Length": 0.5,
+        "Width": 0.4,
+        "Height": 0.35
+      },
+      "Weight": 1.2,
+      "Position": {
+        "x": 2.35,
+        "y": 0.765,
+        "z": 0.156
+      }
+    },
+    {
+      "Package_ID": 30,
+      "Package_Type": "Medium Carton Box - Standard Packing Size",
+      "Dimensions": {
+        "Length": 0.5,
+        "Width": 0.4,
+        "Height": 0.35
+      },
+      "Weight": 1.2,
+      "Position": {
+        "x": 2.85,
+        "y": 0.765,
+        "z": 0.156
+      }
+    },
+    {
+      "Package_ID": 31,
+      "Package_Type": "Medium Carton Box - Standard Packing Size",
+      "Dimensions": {
+        "Length": 0.5,
+        "Width": 0.4,
+        "Height": 0.35
+      },
+      "Weight": 1.2,
+      "Position": {
+        "x": 2.35,
+        "y": 0.765,
+        "z": 0.506
+      }
+    },
+    {
+      "Package_ID": 32,
+      "Package_Type": "Medium Carton Box - Standard Packing Size",
+      "Dimensions": {
+        "Length": 0.5,
+        "Width": 0.4,
+        "Height": 0.35
+      },
+      "Weight": 1.2,
+      "Position": {
+        "x": 2.85,
+        "y": 0.765,
+        "z": 0.506
+      }
+    },
+    {
+      "Package_ID": 900002,
+      "Package_Type": "Loscam Wooden Pallet - Asia",
+      "Dimensions": {
+        "Length": 1.2,
+        "Width": 1.0,
+        "Height": 0.156
+      },
+      "Position": {
+        "x": 3.57,
+        "y": 0.165,
+        "z": 0.0
+      }
+    },
+    {
+      "Package_ID": 7,
+      "Package_Type": "Extra-Large Carton Box - Bulk Pallet Size",
+      "Dimensions": {
+        "Length": 0.8,
+        "Width": 0.6,
+        "Height": 0.6
+      },
+      "Weight": 2.5,
+      "Position": {
+        "x": 3.57,
+        "y": 0.165,
+        "z": 0.156
+      }
+    },
+    {
+      "Package_ID": 8,
+      "Package_Type": "Extra-Large Carton Box - Bulk Pallet Size",
+      "Dimensions": {
+        "Length": 0.8,
+        "Width": 0.6,
+        "Height": 0.6
+      },
+      "Weight": 2.5,
+      "Position": {
+        "x": 3.57,
+        "y": 0.165,
         "z": 0.756
       }
     },
     {
-      "Package_ID": 3,
-      "Package_Type": "PKG_3",
+      "Package_ID": 9,
+      "Package_Type": "Extra-Large Carton Box - Bulk Pallet Size",
       "Dimensions": {
-        "Length": 0.5,
-        "Width": 0.4,
-        "Height": 0.35
+        "Length": 0.8,
+        "Width": 0.6,
+        "Height": 0.6
       },
-      "Weight": 1.2,
+      "Weight": 2.5,
       "Position": {
-        "x": 0.0,
-        "y": 0.48,
+        "x": 3.57,
+        "y": 0.165,
+        "z": 1.356
+      }
+    },
+    {
+      "Package_ID": 35,
+      "Package_Type": "Large Carton Box - Industrial Packing Size",
+      "Dimensions": {
+        "Length": 0.6,
+        "Width": 0.48,
+        "Height": 0.42
+      },
+      "Weight": 1.7,
+      "Position": {
+        "x": 3.57,
+        "y": 0.165,
+        "z": 1.956
+      }
+    },
+    {
+      "Package_ID": 900003,
+      "Package_Type": "Loscam Wooden Pallet - Asia",
+      "Dimensions": {
+        "Length": 1.2,
+        "Width": 1.0,
+        "Height": 0.156
+      },
+      "Position": {
+        "x": 1.13,
+        "y": 1.185,
+        "z": 0.0
+      }
+    },
+    {
+      "Package_ID": 10,
+      "Package_Type": "Extra-Large Carton Box - Bulk Pallet Size",
+      "Dimensions": {
+        "Length": 0.8,
+        "Width": 0.6,
+        "Height": 0.6
+      },
+      "Weight": 2.5,
+      "Position": {
+        "x": 1.13,
+        "y": 1.185,
+        "z": 0.156
+      }
+    },
+    {
+      "Package_ID": 11,
+      "Package_Type": "Extra-Large Carton Box - Bulk Pallet Size",
+      "Dimensions": {
+        "Length": 0.8,
+        "Width": 0.6,
+        "Height": 0.6
+      },
+      "Weight": 2.5,
+      "Position": {
+        "x": 1.13,
+        "y": 1.185,
         "z": 0.756
       }
     },
     {
-      "Package_ID": 3,
-      "Package_Type": "PKG_3",
+      "Package_ID": 12,
+      "Package_Type": "Extra-Large Carton Box - Bulk Pallet Size",
       "Dimensions": {
-        "Length": 0.5,
-        "Width": 0.4,
-        "Height": 0.35
+        "Length": 0.8,
+        "Width": 0.6,
+        "Height": 0.6
       },
-      "Weight": 1.2,
+      "Weight": 2.5,
       "Position": {
-        "x": 0.5,
-        "y": 0.48,
+        "x": 1.13,
+        "y": 1.185,
+        "z": 1.356
+      }
+    },
+    {
+      "Package_ID": 36,
+      "Package_Type": "Large Carton Box - Industrial Packing Size",
+      "Dimensions": {
+        "Length": 0.6,
+        "Width": 0.48,
+        "Height": 0.42
+      },
+      "Weight": 1.7,
+      "Position": {
+        "x": 1.13,
+        "y": 1.185,
+        "z": 1.956
+      }
+    },
+    {
+      "Package_ID": 900004,
+      "Package_Type": "Loscam Wooden Pallet - Asia",
+      "Dimensions": {
+        "Length": 1.2,
+        "Width": 1.0,
+        "Height": 0.156
+      },
+      "Position": {
+        "x": 2.35,
+        "y": 1.185,
+        "z": 0.0
+      }
+    },
+    {
+      "Package_ID": 13,
+      "Package_Type": "Extra-Large Carton Box - Bulk Pallet Size",
+      "Dimensions": {
+        "Length": 0.8,
+        "Width": 0.6,
+        "Height": 0.6
+      },
+      "Weight": 2.5,
+      "Position": {
+        "x": 2.35,
+        "y": 1.185,
+        "z": 0.156
+      }
+    },
+    {
+      "Package_ID": 14,
+      "Package_Type": "Extra-Large Carton Box - Bulk Pallet Size",
+      "Dimensions": {
+        "Length": 0.8,
+        "Width": 0.6,
+        "Height": 0.6
+      },
+      "Weight": 2.5,
+      "Position": {
+        "x": 2.35,
+        "y": 1.185,
         "z": 0.756
       }
     },
     {
-      "Package_ID": 3,
-      "Package_Type": "PKG_3",
+      "Package_ID": 15,
+      "Package_Type": "Extra-Large Carton Box - Bulk Pallet Size",
       "Dimensions": {
-        "Length": 0.5,
-        "Width": 0.4,
-        "Height": 0.35
+        "Length": 0.8,
+        "Width": 0.6,
+        "Height": 0.6
       },
-      "Weight": 1.2,
+      "Weight": 2.5,
       "Position": {
-        "x": 0.0,
-        "y": 0.0,
-        "z": 1.176
+        "x": 2.35,
+        "y": 1.185,
+        "z": 1.356
       }
     },
     {
-      "Package_ID": 3,
-      "Package_Type": "PKG_3",
+      "Package_ID": 37,
+      "Package_Type": "Large Carton Box - Industrial Packing Size",
       "Dimensions": {
-        "Length": 0.5,
-        "Width": 0.4,
-        "Height": 0.35
+        "Length": 0.6,
+        "Width": 0.48,
+        "Height": 0.42
       },
-      "Weight": 1.2,
+      "Weight": 1.7,
       "Position": {
-        "x": 0.5,
-        "y": 0.0,
-        "z": 1.176
+        "x": 2.35,
+        "y": 1.185,
+        "z": 1.956
       }
     },
     {
-      "Package_ID": 3,
-      "Package_Type": "PKG_3",
+      "Package_ID": 900005,
+      "Package_Type": "Loscam Wooden Pallet - Asia",
       "Dimensions": {
-        "Length": 0.5,
-        "Width": 0.4,
-        "Height": 0.35
+        "Length": 1.2,
+        "Width": 1.0,
+        "Height": 0.156
       },
-      "Weight": 1.2,
       "Position": {
-        "x": 0.0,
-        "y": 0.4,
-        "z": 1.176
+        "x": 3.57,
+        "y": 1.185,
+        "z": 0.0
       }
     },
     {
-      "Package_ID": 3,
-      "Package_Type": "PKG_3",
+      "Package_ID": 16,
+      "Package_Type": "Extra-Large Carton Box - Bulk Pallet Size",
       "Dimensions": {
-        "Length": 0.5,
-        "Width": 0.4,
-        "Height": 0.35
+        "Length": 0.8,
+        "Width": 0.6,
+        "Height": 0.6
       },
-      "Weight": 1.2,
+      "Weight": 2.5,
       "Position": {
-        "x": 0.5,
-        "y": 0.4,
-        "z": 1.176
+        "x": 3.57,
+        "y": 1.185,
+        "z": 0.156
       }
     }
   ]

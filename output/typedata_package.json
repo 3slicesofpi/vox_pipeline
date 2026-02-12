@@ -1,34 +1,4 @@
 {
-    "PKG_1": {
-        "Package_Type": "PKG_1",
-        "Dimensions": {
-            "Length": 0.6,
-            "Width": 0.48,
-            "Height": 0.42
-        },
-        "Weight": 1.7,
-        "Color": "Green"
-    },
-    "PKG_2": {
-        "Package_Type": "PKG_2",
-        "Dimensions": {
-            "Length": 0.8,
-            "Width": 0.6,
-            "Height": 0.6
-        },
-        "Weight": 2.5,
-        "Color": "Green"
-    },
-    "PKG_3": {
-        "Package_Type": "PKG_3",
-        "Dimensions": {
-            "Length": 0.5,
-            "Width": 0.4,
-            "Height": 0.35
-        },
-        "Weight": 1.2,
-        "Color": "Green"
-    },
     "Loscam Wooden Pallet - Asia": {
         "Package_Type": "Loscam Wooden Pallet - Asia",
         "Dimensions": {
@@ -39,5 +9,35 @@
         "Weight": 28.0,
         "Color": "Orange",
         "WeightLimit": 1000.0
+    },
+    "Extra-Large Carton Box - Bulk Pallet Size": {
+        "Package_Type": "Extra-Large Carton Box - Bulk Pallet Size",
+        "Dimensions": {
+            "Length": 0.8,
+            "Width": 0.6,
+            "Height": 0.6
+        },
+        "Weight": 2.5,
+        "Color": "Purple"
+    },
+    "Medium Carton Box - Standard Packing Size": {
+        "Package_Type": "Medium Carton Box - Standard Packing Size",
+        "Dimensions": {
+            "Length": 0.5,
+            "Width": 0.4,
+            "Height": 0.35
+        },
+        "Weight": 1.2,
+        "Color": "Purple"
+    },
+    "Large Carton Box - Industrial Packing Size": {
+        "Package_Type": "Large Carton Box - Industrial Packing Size",
+        "Dimensions": {
+            "Length": 0.6,
+            "Width": 0.48,
+            "Height": 0.42
+        },
+        "Weight": 1.7,
+        "Color": "Purple"
     }
 }

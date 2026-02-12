@@ -1,4 +1,4 @@
 Package_ID,Package_Type,Weight,Length,Width,Height,Qty
-1,Large Carton Box - Industrial Packing Size,1.7,0.6,0.48,0.42,8
-2,Extra-Large Carton Box - Bulk Pallet Size,2.5,0.8,0.6,0.6,8
-3,Medium Carton Box - Standard Packing Size,1.2,0.5,0.4,0.35,8
+1,Extra-Large Carton Box - Bulk Pallet Size,2.5,0.8,0.6,0.6,16
+2,Medium Carton Box - Standard Packing Size,1.2,0.5,0.4,0.35,16
+3,Large Carton Box - Industrial Packing Size,1.7,0.6,0.48,0.42,5
