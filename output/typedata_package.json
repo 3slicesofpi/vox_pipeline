@@ -18,7 +18,7 @@
             "Height": 0.6
         },
         "Weight": 2.5,
-        "Color": "Purple"
+        "Color": "Brown"
     },
     "Medium Carton Box - Standard Packing Size": {
         "Package_Type": "Medium Carton Box - Standard Packing Size",
@@ -28,7 +28,7 @@
             "Height": 0.35
         },
         "Weight": 1.2,
-        "Color": "Purple"
+        "Color": "Brown"
     },
     "Large Carton Box - Industrial Packing Size": {
         "Package_Type": "Large Carton Box - Industrial Packing Size",
@@ -38,6 +38,6 @@
             "Height": 0.42
         },
         "Weight": 1.7,
-        "Color": "Purple"
+        "Color": "Brown"
     }
 }

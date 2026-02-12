@@ -3,9 +3,9 @@ from dataclasses import dataclass
 from typing import List, Tuple, Optional
 
 
-# -----------------------------
-# Data models
-# -----------------------------
+
+#Data models
+
 @dataclass
 class Dims:
     L: float
@@ -33,14 +33,14 @@ class PlacedItem(Item):
 class StackSpot:
     x: float
     y: float
-    z: float   # top surface height
+    z: float   # top surface height (in metres)
     L: float
     W: float
 
 
-# -----------------------------
-# JSON helpers
-# -----------------------------
+
+#Save and load JSON files
+
 def load_json(path: str) -> dict:
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
@@ -51,10 +51,8 @@ def save_json(path: str, obj: dict) -> None:
         json.dump(obj, f, indent=2)
 
 
-# -----------------------------
-# typedata helpers
-# -----------------------------
-def td_get_dims(td_pkg: dict, package_type: str) -> Optional[Dims]:
+#typedata helpers
+def td_get_dims(td_pkg: dict, package_type: str):
     entry = td_pkg.get(package_type)
     if not entry:
         return None
@@ -64,7 +62,7 @@ def td_get_dims(td_pkg: dict, package_type: str) -> Optional[Dims]:
     return Dims(float(d["Length"]), float(d["Width"]), float(d["Height"]))
 
 
-def td_get_weight(td_pkg: dict, package_type: str) -> Optional[float]:
+def td_get_weight(td_pkg: dict, package_type: str):
     entry = td_pkg.get(package_type)
     if not entry:
         return None
@@ -72,22 +70,22 @@ def td_get_weight(td_pkg: dict, package_type: str) -> Optional[float]:
     return float(w) if w is not None else None
 
 
-# -----------------------------
-# Orientation helper
-# -----------------------------
-def orientations_horizontal(d: Dims) -> List[Tuple[Dims, bool]]:
-    """Allow horizontal rotation only (swap L/W). Height stays the same."""
+
+#Orientation change
+
+def orientations_horizontal(d: Dims):
+    #This allows horizontal rotation only (swap L/W). Height stays the same.
     return [(d, False), (Dims(d.W, d.L, d.H), True)]
 
 
-# -----------------------------
-# Normalize input items
-# -----------------------------
-def normalize_input_items(manifest_in: dict, td_pkg: dict, pallet_type: str) -> List[Item]:
-    """
-    Ensures each cargo item has Package_Type, Dimensions, Weight.
-    Ignores pallet entries (Package_Type == pallet_type).
-    """
+
+#Normalize input items
+
+def normalize_input_items(manifest_in: dict, td_pkg: dict, pallet_type: str):
+    
+    #Ensures each package item has Package_Type, Dimensions, Weight.
+    #Ignores pallet entries (Package_Type == pallet_type).
+    
     items: List[Item] = []
     pallet_type = str(pallet_type).strip()
 
@@ -102,11 +100,11 @@ def normalize_input_items(manifest_in: dict, td_pkg: dict, pallet_type: str) -> 
             )
         ptype = str(ptype).strip()
 
-        # Ignore pallets if they accidentally appear as cargo
+        #Ignore pallets if they accidentally appear as packages
         if ptype == pallet_type:
             continue
 
-        # Dimensions
+        #Dimensions
         d = p.get("Dimensions")
         if d:
             dims = Dims(float(d["Length"]), float(d["Width"]), float(d["Height"]))
@@ -119,7 +117,7 @@ def normalize_input_items(manifest_in: dict, td_pkg: dict, pallet_type: str) -> 
                 )
             dims = td_dims
 
-        # Weight
+        #Weight
         w = p.get("Weight")
         if w is not None:
             weight = float(w)
@@ -137,9 +135,9 @@ def normalize_input_items(manifest_in: dict, td_pkg: dict, pallet_type: str) -> 
     return items
 
 
-# -----------------------------
-# Support-based pallet packing (stable, no floating)
-# -----------------------------
+
+#Support-based pallet packing (no more floating)
+
 def pack_one_pallet_supported(
     items: List[Item],
     pallet_dims: Dims,
@@ -147,15 +145,15 @@ def pack_one_pallet_supported(
     container_height: float,
     heavy_threshold: float = 100.0,
     heavy_max_layers: int = 3,
-) -> Tuple[List[PlacedItem], List[Item]]:
-    """
-    Packs onto ONE pallet with strict support:
-      - Base layer: shelf packing at z = pallet_height
-      - Upper layers: ONLY stack directly on top of an existing box footprint
-    Prevents floating.
-    """
+):
+    
+    #Packs onto ONE pallet with strict support:
+     #Base layer: shelf packing at z = pallet_height
+      #Upper layers: ONLY stack directly on top of an existing box footprint
+    #Prevents floating.
+    
 
-    def volume(it: Item) -> float:
+    def volume(it: Item):
         return it.dims.L * it.dims.W * it.dims.H
 
     ordered = sorted(items, key=lambda it: (it.weight < heavy_threshold, -volume(it)))
@@ -163,7 +161,7 @@ def pack_one_pallet_supported(
     placed: List[PlacedItem] = []
     remaining: List[Item] = []
 
-    # Base shelf state
+    #Base shelf state
     z_base = pallet_height
     x_cursor = 0.0
     y_cursor = 0.0
@@ -178,7 +176,7 @@ def pack_one_pallet_supported(
         )
 
     for it in ordered:
-        # Impossible checks
+        #Impossible checks
         if it.dims.H + pallet_height > container_height:
             raise ValueError(f"Item pid={it.package_id} too tall even on pallet.")
 
@@ -191,25 +189,25 @@ def pack_one_pallet_supported(
 
         placed_this = False
 
-        # 1) Base layer (on pallet)
+        #1) Base layer (on pallet)
         for dims_try, rotated in orientations_horizontal(it.dims):
             x = x_cursor
             y = y_cursor
 
-            # wrap row if needed
+            #wrap row if needed
             if x + dims_try.L > pallet_dims.L:
                 x = 0.0
                 y = y_cursor + row_depth
 
-            # no space on pallet base
+            #no space on pallet base
             if y + dims_try.W > pallet_dims.W:
                 continue
 
-            # height check
+            #height check
             if z_base + dims_try.H > container_height:
                 continue
 
-            # place
+            #place
             placed.append(PlacedItem(
                 package_id=it.package_id,
                 package_type=it.package_type,
@@ -221,12 +219,12 @@ def pack_one_pallet_supported(
                 rotated=rotated
             ))
 
-            # add a stack spot above it
+            #add a stack spot above it
             stack_spots.append(StackSpot(
                 x=x, y=y, z=z_base + dims_try.H, L=dims_try.L, W=dims_try.W
             ))
 
-            # commit shelf cursor update
+            #commit shelf cursor update
             if x == 0.0 and (x_cursor + dims_try.L > pallet_dims.L):
                 # we wrapped to new row
                 y_cursor = y
@@ -241,7 +239,7 @@ def pack_one_pallet_supported(
         if placed_this:
             continue
 
-        # 2) Stacking (must be supported by a box below)
+        #2) Stacking (must be supported by a box below)
         stack_spots.sort(key=lambda s: s.z)  # lowest first
 
         for dims_try, rotated in orientations_horizontal(it.dims):
@@ -250,7 +248,7 @@ def pack_one_pallet_supported(
                 if it.weight >= heavy_threshold and layer_idx >= heavy_max_layers:
                     continue
 
-                # must fit within supporting footprint
+                #must fit within supporting footprint
                 if dims_try.L <= spot.L and dims_try.W <= spot.W:
                     if spot.z + dims_try.H <= container_height:
                         placed.append(PlacedItem(
@@ -280,9 +278,9 @@ def pack_one_pallet_supported(
     return placed, remaining
 
 
-# -----------------------------
-# Better pallet floor placement (uses width AND length, tries rotation, centers grid)
-# -----------------------------
+
+#Better pallet floor placement (now uses width and length, tries rotation, centers grid)
+
 def plan_pallet_floor(
     num_pallets: int,
     container_L: float,
@@ -291,14 +289,14 @@ def plan_pallet_floor(
     pallet_W: float,
     gap: float
 ) -> Tuple[List[Tuple[float, float]], Tuple[float, float]]:
-    """
-    Improved pallet floor planner:
-      - tries both pallet orientations
-      - searches for a rows/cols arrangement that fits all pallets
-      - prefers using MORE rows (better width utilization)
-      - then prefers using LESS total length (compact)
-      - centers the resulting grid in the container
-    """
+    
+    #Improved pallet floor planner:
+      # tries both pallet orientations
+      # searches for a rows/cols arrangement that fits all pallets
+      # prefers using MORE rows (better width utilization)
+      # then prefers using LESS total length (compact)
+      # centers the resulting grid in the container
+    
 
     def max_counts(Lp: float, Wp: float) -> Tuple[int, int]:
         cols = int((container_L + gap) // (Lp + gap))
@@ -312,15 +310,15 @@ def plan_pallet_floor(
         return rows * Wp + (rows - 1) * gap
 
     best = None
-    best_score = None  # tuple for sorting
+    best_score = None  #tuple for sorting
 
-    # Try both pallet orientations
+    #Try both pallet orientations
     for (Lp, Wp) in [(pallet_L, pallet_W), (pallet_W, pallet_L)]:
         max_cols, max_rows = max_counts(Lp, Wp)
         if max_cols <= 0 or max_rows <= 0:
             continue
 
-        # Try row counts from max_rows downwards (prefer more rows)
+        #Try row counts from max_rows downwards (prefer more rows)
         for rows in range(max_rows, 0, -1):
             cols_needed = (num_pallets + rows - 1) // rows  # ceil(num/rows)
             if cols_needed <= 0:
@@ -335,10 +333,10 @@ def plan_pallet_floor(
             if L_used > container_L + 1e-9 or W_used > container_W + 1e-9:
                 continue
 
-            # Scoring:
-            # 1) maximize rows
-            # 2) minimize used length
-            # 3) minimize wasted slots (cols*rows - num)
+            #Scoring:
+            #1) maximize rows
+            #2) minimize used length
+            #3) minimize wasted slots (cols*rows - num)
             waste = cols_needed * rows - num_pallets
             score = (-rows, L_used, waste)
 
@@ -347,7 +345,7 @@ def plan_pallet_floor(
                 best = (Lp, Wp, cols_needed, rows)
 
     if best is None:
-        # fallback: compute absolute max capacity and explain
+        #fallback: compute absolute max capacity and explain
         c1, r1 = max_counts(pallet_L, pallet_W)
         c2, r2 = max_counts(pallet_W, pallet_L)
         cap1, cap2 = c1 * r1, c2 * r2
@@ -358,7 +356,7 @@ def plan_pallet_floor(
 
     Lp, Wp, cols, rows = best
 
-    # Center the grid
+    #Center the grid
     L_used = used_length(cols, Lp)
     W_used = used_width(rows, Wp)
 
@@ -379,9 +377,9 @@ def plan_pallet_floor(
             break
 
     return positions, (Lp, Wp)
-# -----------------------------
+
+
 # Main optimizer build
-# -----------------------------
 def build_optimized_manifest(
     manifest_in_path: str,
     typedata_package_path: str,
@@ -438,7 +436,7 @@ def build_optimized_manifest(
         all_pallet_loads.append(placed)
         remaining = remaining2
 
-    # Improved pallet floor placement
+    #Improved pallet floor placement
     pallet_xy, (Lp_used, Wp_used) = plan_pallet_floor(
         num_pallets=len(all_pallet_loads),
         container_L=container_dims.L,
@@ -448,7 +446,7 @@ def build_optimized_manifest(
         gap=pallet_gap
     )
 
-    # Build output manifest
+    #Build output manifest
     out_packages: List[dict] = []
     pallet_id_start = 900000
 
@@ -491,9 +489,9 @@ def build_optimized_manifest(
     }
 
 
-# -----------------------------
-# CLI runner
-# -----------------------------
+
+
+#CLI runner
 if __name__ == "__main__":
     import argparse
 
@@ -518,4 +516,4 @@ if __name__ == "__main__":
         pallet_gap=args.pallet_gap
     )
 
-    print("✅ Optimizer complete:", info)
+    print("OK: Optimizer complete:", info)
