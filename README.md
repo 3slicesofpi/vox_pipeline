@@ -11,6 +11,7 @@ R-Click + Scroll - Drag Selected Package up and down.
 S - Save View
 Alt-S - Save Load and View Report
 C - Check Load Constraints
+A - Toggle Package Alpha (Wireframe/Solid/Default)
 
 R - Rotate
 T - Pitch

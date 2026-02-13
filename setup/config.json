@@ -11,7 +11,8 @@
         "show_grid":true,
         "snap_behaviour": {
             "pkg_move": 2 
-        }
+        },
+        "print_cursor_pos": false
     },
     "report": {
         "create_after_save": true,

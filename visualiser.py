@@ -1,9 +1,7 @@
 import re
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.transforms as mtransforms
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-from mpl_toolkits.mplot3d import proj3d
 
 import json
 
@@ -170,11 +168,11 @@ class Container():
     def check_contraints(self):
         for pkg in self.Packages:
             pkg.EdgeColors = Package.d_EdgeColors
-        order = [self._check_overlap, self._check_floating, self._check_container_weight, self._check_package_weight, self._check_out_of_bounds]
+        order = [self._check_overlap, self._check_floating, self._check_container_weight, self._check_package_weight, self._check_out_of_bounds, self._container_info]
         text = "Constraint Check:\n\n"
 
         for check in order:
-            outcome, line = check()
+            outcome, line = check() 
             text+=line
 
         fig, ax = plt.subplots()
@@ -189,17 +187,22 @@ class Container():
         ax.axis('off')
         plt.show()
 
+    def _container_info(self):
+        data = self._export()
+        return True, f"\nUtilization: {float(data['Volume_Utilization'])*100:.3f}% ({float(data['Volume_Used_Amount']):.2f}/{self.volume:.2f})\nTotal Gross Weight: {float(data['Gross_Weight']):.2f}\nTotal Packages: {len(self.Packages)}\n"
+
     def _check_overlap(self) -> bool|str:
         overlaps = []
+        OVERLAP_ALLOWANCE = 1  # unit allowance for overlap
         for i, pkg1 in enumerate(self.Packages):
             for pkg2 in self.Packages[i+1:]:
                 # Check if bounding boxes overlap in all three dimensions
-                if (pkg1.posx < pkg2.posx + pkg2.dimLength and
-                    pkg1.posx + pkg1.dimLength > pkg2.posx and
-                    pkg1.posy < pkg2.posy + pkg2.dimWidth and
-                    pkg1.posy + pkg1.dimWidth > pkg2.posy and
-                    pkg1.posz < pkg2.posz + pkg2.dimHeight and
-                    pkg1.posz + pkg1.dimHeight > pkg2.posz):
+                if (pkg1.posx < pkg2.posx + pkg2.dimLength - OVERLAP_ALLOWANCE and
+                    pkg1.posx + pkg1.dimLength - OVERLAP_ALLOWANCE > pkg2.posx and
+                    pkg1.posy < pkg2.posy + pkg2.dimWidth - OVERLAP_ALLOWANCE and
+                    pkg1.posy + pkg1.dimWidth - OVERLAP_ALLOWANCE > pkg2.posy and
+                    pkg1.posz < pkg2.posz + pkg2.dimHeight - OVERLAP_ALLOWANCE and
+                    pkg1.posz + pkg1.dimHeight - OVERLAP_ALLOWANCE > pkg2.posz):
                     overlaps.append(pkg1)
                     overlaps.append(pkg2)
         if overlaps:
@@ -209,9 +212,10 @@ class Container():
             return False, f"FAIL: Overlaps: {len(overlaps)}, {len(overlapping)} packages found overlapping.\n"
         else:
             return True, "PASS: No overlaps found.\n"
-        
+  
     def _check_floating(self) -> bool|str:
         floaters = []
+        FLOAT_ALLOWANCE = 1  # unit allowance for floating
         for pkg in self.Packages:
             # Check if package is floating (not supported from below)
             # Test 4 corners and midpoint of the bottom face
@@ -232,10 +236,10 @@ class Container():
                     for other_pkg in self.Packages:
                         if other_pkg == pkg:
                             continue
-                        # Check if this point is supported by another package's top surface
+                        # Check if this point is supported by another package's top surface (with allowance)
                         if (other_pkg.posx <= x <= other_pkg.posx + other_pkg.dimLength and
                             other_pkg.posy <= y <= other_pkg.posy + other_pkg.dimWidth and
-                            other_pkg.posz + other_pkg.dimHeight == pkg.posz):
+                            other_pkg.posz + other_pkg.dimHeight <= pkg.posz <= other_pkg.posz + other_pkg.dimHeight + FLOAT_ALLOWANCE):
                             is_floating = False
                             break
                     if not is_floating:
@@ -442,9 +446,9 @@ class Package():
                 )
     
     def _moveTo(self, posx:float=None, posy:float=None, posz:float=None):
-        if posx is not None and 0 < posx <= container.dimLength-self.dimLength : self.posx = round(posx, self.posSnap) 
-        if posy is not None and 0 < posy <= container.dimWidth-self.dimWidth : self.posy = round(posy, self.posSnap) 
-        if posz is not None and 0 < posz <= container.dimHeight-self.dimHeight : self.posz = round(posz, self.posSnap)
+        if posx is not None and 0 <= posx <= container.dimLength-self.dimLength : self.posx = round(posx, self.posSnap) 
+        if posy is not None and 0 <= posy <= container.dimWidth-self.dimWidth : self.posy = round(posy, self.posSnap) 
+        if posz is not None and 0 <= posz <= container.dimHeight-self.dimHeight : self.posz = round(posz, self.posSnap)
         self.update_pos()
 
     def _render(self, fig, ax):
@@ -483,6 +487,7 @@ class CursorHelper():
             self.focuspkg.dimLength = width
             self.focuspkg.dimWidth = length
             self.focuspkg.update_pos()
+            fig.canvas.draw_idle()
     
     def pitch_pkg(self):
         if self.focuspkg:
@@ -491,6 +496,7 @@ class CursorHelper():
             self.focuspkg.dimHeight = width
             self.focuspkg.dimWidth = height
             self.focuspkg.update_pos()
+            fig.canvas.draw_idle()
     
     def yaw_pkg(self):
         if self.focuspkg:
@@ -499,6 +505,7 @@ class CursorHelper():
             self.focuspkg.dimLength = height
             self.focuspkg.dimHeight = length
             self.focuspkg.update_pos()
+            fig.canvas.draw_idle()
 
     def _update(self):
         for pkg in container.Packages:
@@ -528,7 +535,8 @@ class CursorHelper():
         self.probeline.set_data([self.posx, self.posx], [self.posy, self.posy])
         self.probeline.set_3d_properties([0, container.dimHeight])
         self.probeline.set_visible(True)
-        print(self.posx, self.posy, self.posz, self.state)
+        if config['visual'].get('print_cursor_pos', True):
+            print(self.posx, self.posy, self.posz, self.state)
 
         if self.state == "hover":
             for pkg in container.Packages:
@@ -590,11 +598,10 @@ class CursorHelper():
             case "focus":
                 if event.button == 'up' and self.posz + 0.1 <= container.dimHeight - self.focuspkg.dimHeight:
                     self.posz += 0.1; self.focuspkg._moveTo(posz=self.posz)
-                elif event.button == 'up' and self.posz <= 0.01:
+                elif event.button == 'down' and self.posz <= 0.19:
                     self.posz = 0; self.focuspkg._moveTo(posz=0)
                 elif event.button == 'down' and self.posz - 0.1 >= 0:
                     self.posz -= 0.1; self.focuspkg._moveTo(posz=self.posz)
-                self.focuspkg.update_pos()
                 self._update(); return
 
 def save_container():
@@ -666,7 +673,7 @@ def mpl_onkey(event):
             print("Info: To save edited manifest, press [ALT]+[S].")
         case 'alt+s':
             save_container()
-        case 'alt+t':
+        case 'a':
             tog_pkg_alpha()
         case 'r':
             cur.rotate_pkg()
